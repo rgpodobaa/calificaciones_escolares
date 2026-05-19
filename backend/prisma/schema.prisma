@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  DIRECTIVO
+  SECRETARIO
+  PRECEPTOR
+  DOCENTE
+  FAMILIA
+}
+
+enum Shift {
+  MANANA
+  TARDE
+  VESPERTINO
+}
+
+enum GradePeriod {
+  PRE_INFORME_1
+  CUATRIMESTRE_1
+  PRE_INFORME_2
+  CUATRIMESTRE_2
+  FINAL
+}
+
+enum ConceptGrade {
+  TEA
+  TEP
+  TED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  JUSTIFIED
+}
+
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  password       String
+  role           Role
+  name           String
+  lastName       String
+  dni            String          @unique
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  // Relaciones
+  preceptedCourses Course[]      @relation("PreceptorCourses")
+  teachingSubjects Subject[]     @relation("TeacherSubjects")
+  familyStudents   Student[]     @relation("FamilyStudents")
+  gradesGiven      Grade[]       @relation("TeacherGrades")
+  communications   Communication[] @relation("CommunicationAuthor")
+}
+
+model Course {
+  id             String          @id @default(uuid())
+  year           Int             // Ej: 1, 2, 3
+  division       String          // Ej: "A", "B"
+  shift          Shift
+  preceptorId    String?
+  preceptor      User?           @relation("PreceptorCourses", fields: [preceptorId], references: [id])
+  subjects       Subject[]
+  students       Student[]
+  communications Communication[] @relation("CourseCommunications")
+  
+  @@unique([year, division, shift])
+}
+
+model Subject {
+  id             String          @id @default(uuid())
+  name           String
+  courseId       String
+  course         Course          @relation(fields: [courseId], references: [id])
+  teacherId      String?
+  teacher        User?           @relation("TeacherSubjects", fields: [teacherId], references: [id])
+  grades         Grade[]
+}
+
+model Student {
+  id             String          @id @default(uuid())
+  firstName      String
+  lastName       String
+  dni            String          @unique
+  birthDate      DateTime?
+  courseId       String?
+  course         Course?         @relation(fields: [courseId], references: [id])
+  familyId       String?
+  family         User?           @relation("FamilyStudents", fields: [familyId], references: [id])
+  grades         Grade[]
+  attendances    Attendance[]
+}
+
+model Grade {
+  id             String          @id @default(uuid())
+  studentId      String
+  student        Student         @relation(fields: [studentId], references: [id])
+  subjectId      String
+  subject        Subject         @relation(fields: [subjectId], references: [id])
+  teacherId      String
+  teacher        User            @relation("TeacherGrades", fields: [teacherId], references: [id])
+  
+  period         GradePeriod
+  concept        ConceptGrade?   // Para pre-informes y cuatrimestres
+  numericValue   Float?          // Para cuatrimestres y nota final
+  comments       String?         // Opcional para devoluciones
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([studentId, subjectId, period]) // Solo una nota por periodo por alumno y materia
+}
+
+model Attendance {
+  id             String          @id @default(uuid())
+  studentId      String
+  student        Student         @relation(fields: [studentId], references: [id])
+  date           DateTime
+  status         AttendanceStatus
+  justification  String?
+
+  createdAt      DateTime        @default(now())
+  
+  @@unique([studentId, date])
+}
+
+model Communication {
+  id               String          @id @default(uuid())
+  title            String
+  content          String
+  authorId         String
+  author           User            @relation("CommunicationAuthor", fields: [authorId], references: [id])
+  
+  // Opcionales para segmentar
+  targetCourseId   String?
+  targetCourse     Course?         @relation("CourseCommunications", fields: [targetCourseId], references: [id])
+  targetFamilyId   String?         // Solo si es un mensaje directo a una familia
+
+  createdAt        DateTime        @default(now())
+}
