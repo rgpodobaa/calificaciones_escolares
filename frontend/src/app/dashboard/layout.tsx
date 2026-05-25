@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
 import styles from './dashboard.module.css';
@@ -13,7 +14,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className={styles.dashboardContainer}>
         {/* Navigation Bar */}
         <header className={styles.header}>
-          <div className={styles.headerBrand}>
+          <Link 
+            href={user ? `/dashboard/${user.role.toLowerCase()}` : '/dashboard'} 
+            className={styles.headerBrand}
+            style={{ textDecoration: 'none' }}
+          >
             <svg 
               width="24" 
               height="24" 
@@ -28,7 +33,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>
             </svg>
             <span className={styles.brandTitle}>Portal Escolar</span>
-          </div>
+          </Link>
 
           <div className={styles.headerUser}>
             {user && (

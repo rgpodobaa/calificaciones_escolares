@@ -4,10 +4,12 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { useAuth } from '@/context/AuthContext';
 import styles from './adminLayout.module.css';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   const isLinkActive = (path: string) => {
     return pathname.startsWith(path) ? styles.activeLink : '';
@@ -55,6 +57,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </svg>
             <span>Cursos y Materias</span>
           </Link>
+
+          {/* Volver al Panel de Inicio según el Rol */}
+          <Link 
+            href={user ? `/dashboard/${user.role.toLowerCase()}` : '/dashboard'} 
+            className={styles.sidebarBackBtn}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+            <span>Volver al Inicio</span>
+          </Link>
         </aside>
 
         {/* Content Panel */}
@@ -65,3 +79,4 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </ProtectedRoute>
   );
 }
+
