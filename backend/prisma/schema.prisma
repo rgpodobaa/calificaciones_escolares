@@ -51,6 +51,7 @@ model User {
   dni            String          @unique
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+  active         Boolean         @default(true)
 
   // Relaciones
   preceptedCourses Course[]      @relation("PreceptorCourses")
@@ -96,6 +97,7 @@ model Student {
   family         User?           @relation("FamilyStudents", fields: [familyId], references: [id])
   grades         Grade[]
   attendances    Attendance[]
+  active         Boolean         @default(true)
 }
 
 model Grade {
@@ -111,11 +113,12 @@ model Grade {
   concept        ConceptGrade?   // Para pre-informes y cuatrimestres
   numericValue   Float?          // Para cuatrimestres y nota final
   comments       String?         // Opcional para devoluciones
+  schoolYear     Int             @default(2026)
 
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
-  @@unique([studentId, subjectId, period]) // Solo una nota por periodo por alumno y materia
+  @@unique([studentId, subjectId, period, schoolYear]) // Solo una nota por periodo y ciclo lectivo por alumno y materia
 }
 
 model Attendance {

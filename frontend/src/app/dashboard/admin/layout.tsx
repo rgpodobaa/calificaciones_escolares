@@ -58,6 +58,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span>Cursos y Materias</span>
           </Link>
 
+          <Link 
+            href="/dashboard/admin/promote" 
+            className={`${styles.sidebarLink} ${isLinkActive('/dashboard/admin/promote')}`}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+              <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>
+            </svg>
+            <span>Cierre de Ciclo</span>
+          </Link>
+
           {/* Volver al Panel de Inicio según el Rol */}
           <Link 
             href={user ? `/dashboard/${user.role.toLowerCase()}` : '/dashboard'} 

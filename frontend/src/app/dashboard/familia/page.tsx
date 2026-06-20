@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
 import { apiGet } from '@/services/api';
@@ -72,13 +72,22 @@ interface BulletinData {
     lastName: string;
     dni: string;
   };
-  course: {
+  currentCourse: {
     id: string;
     year: number;
     division: string;
     shift: string;
   } | null;
-  subjects: SubjectGrade[];
+  academicHistory: Record<string, {
+    schoolYear: number;
+    course: {
+      id: string;
+      year: number;
+      division: string;
+      shift: string;
+    } | null;
+    subjects: SubjectGrade[];
+  }>;
   attendanceSummary: AttendanceSummary;
   attendanceRecords: AttendanceRecord[];
 }
@@ -99,7 +108,7 @@ interface Communication {
   } | null;
 }
 
-type TabType = 'boletin' | 'asistencia' | 'comunicados';
+type TabType = 'inicio' | 'boletin' | 'asistencia' | 'comunicados';
 
 export default function FamiliaDashboard() {
   const { user } = useAuth();
@@ -117,7 +126,7 @@ export default function FamiliaDashboard() {
   const [loadingComms, setLoadingComms] = useState<boolean>(false);
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<TabType>('boletin');
+  const [activeTab, setActiveTab] = useState<TabType>('inicio');
 
   // Fetch children on initial load
   useEffect(() => {
@@ -216,6 +225,81 @@ export default function FamiliaDashboard() {
     return children.find((c) => c.id === activeChildId);
   };
 
+  // Memoized lists for academicHistory navigation
+  const yearsList = useMemo(() => {
+    if (!bulletin || !bulletin.academicHistory) return [];
+    // Sort ascending by schoolYear, then by course year
+    return Object.keys(bulletin.academicHistory).sort((a, b) => {
+      const entryA = bulletin.academicHistory[a];
+      const entryB = bulletin.academicHistory[b];
+      if (!entryA || !entryB) return 0;
+      if (entryA.schoolYear !== entryB.schoolYear) {
+        return entryA.schoolYear - entryB.schoolYear;
+      }
+      const courseYearA = entryA.course?.year || 0;
+      const courseYearB = entryB.course?.year || 0;
+      return courseYearA - courseYearB;
+    });
+  }, [bulletin]);
+
+  // Memoized recent grades across all subjects
+  const recentGrades = useMemo(() => {
+    if (!bulletin || !bulletin.academicHistory) return [];
+
+    const allGrades: Array<{
+      subjectName: string;
+      period: string;
+      concept: 'TEA' | 'TEP' | 'TED' | null;
+      numericValue: number | null;
+      updatedAt: string;
+    }> = [];
+
+    Object.values(bulletin.academicHistory).forEach((yearData) => {
+      yearData.subjects.forEach((sub) => {
+        const periods = ['PRE_INFORME_1', 'CUATRIMESTRE_1', 'PRE_INFORME_2', 'CUATRIMESTRE_2', 'FINAL'] as const;
+        periods.forEach((period) => {
+          const g = sub.grades[period];
+          if (g && (g.concept || g.numericValue !== null)) {
+            allGrades.push({
+              subjectName: sub.subjectName,
+              period: period.replace(/_/g, ' '),
+              concept: g.concept,
+              numericValue: g.numericValue,
+              updatedAt: g.updatedAt,
+            });
+          }
+        });
+      });
+    });
+
+    // Sort descending by updatedAt
+    return allGrades
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 3);
+  }, [bulletin]);
+
+  // Memoized latest single attendance log
+  const latestAttendance = useMemo(() => {
+    if (!bulletin || !bulletin.attendanceRecords || bulletin.attendanceRecords.length === 0) {
+      return null;
+    }
+    const sorted = [...bulletin.attendanceRecords].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return sorted[0];
+  }, [bulletin]);
+
+  // Memoized calculated attendance percentage
+  const attendancePercentage = useMemo(() => {
+    if (!bulletin || !bulletin.attendanceSummary) return 100;
+    const { absent, total } = bulletin.attendanceSummary;
+    if (total === 0) return 100;
+    return Math.round(((total - absent) / total) * 100);
+  }, [bulletin]);
+
+  // Memoized 2 most recent communications
+  const recentComms = useMemo(() => {
+    return comms.slice(0, 2);
+  }, [comms]);
+
   return (
     <ProtectedRoute allowedRoles={['FAMILIA']}>
       <div className={styles.container}>
@@ -240,8 +324,8 @@ export default function FamiliaDashboard() {
                   className={`${styles.childButton} ${activeChildId === child.id ? styles.childButtonActive : ''}`}
                   onClick={() => {
                     setActiveChildId(child.id);
-                    // Reset to boletin tab by default when switching kids
-                    setActiveTab('boletin');
+                    // Reset to inicio tab by default when switching kids
+                    setActiveTab('inicio');
                   }}
                 >
                   <div className={styles.childAvatar}>
@@ -262,6 +346,17 @@ export default function FamiliaDashboard() {
         {/* Navigation Tabs */}
         {activeChildId && (
           <div className={styles.tabNav}>
+            <button
+              type="button"
+              className={`${styles.tabBtn} ${activeTab === 'inicio' ? styles.tabBtnActive : ''}`}
+              onClick={() => setActiveTab('inicio')}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              <span>Inicio</span>
+            </button>
             <button
               type="button"
               className={`${styles.tabBtn} ${activeTab === 'boletin' ? styles.tabBtnActive : ''}`}
@@ -301,115 +396,292 @@ export default function FamiliaDashboard() {
         {activeChildId && (
           <div className={styles.tabContent}>
             
-            {/* 1. Academic Bulletin Tab */}
-            {activeTab === 'boletin' && (
-              <div className={styles.panelCard}>
-                <div className={styles.panelHeader}>
-                  <div className={styles.panelTitle}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                    </svg>
-                    <span>Calificaciones Consolidadas</span>
-                  </div>
-                  {getActiveChild()?.course && (
-                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                      Curso: <strong>{getActiveChild()?.course?.year}° &ldquo;{getActiveChild()?.course?.division}&rdquo;</strong> - Turno {getActiveChild()?.course?.shift}
-                    </span>
-                  )}
+            {/* 0. Summary Home Tab */}
+            {activeTab === 'inicio' && (
+              <div className={styles.summaryGrid}>
+                {/* 1. Header/Greeting Card */}
+                <div className={styles.welcomeCard}>
+                  <h2>Resumen General</h2>
+                  <p>
+                    Aquí tienes la información más relevante de <strong>{getActiveChild()?.firstName}</strong> para el día de hoy.
+                  </p>
                 </div>
 
-                {loadingBulletin ? (
-                  <div className={styles.loadingContainer}>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                    <p>Cargando calificaciones del alumno...</p>
+                {/* 2. Live Attendance Card */}
+                <div className={styles.summaryCard}>
+                  <div className={styles.summaryCardHeader}>
+                    <div className={styles.summaryCardTitle}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                      </svg>
+                      <span>Asistencia Reciente</span>
+                    </div>
+                    <button className={styles.textLinkBtn} onClick={() => setActiveTab('asistencia')}>Ver historial</button>
                   </div>
-                ) : !bulletin || bulletin.subjects.length === 0 ? (
-                  <div className={styles.emptyFeed}>
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    <p>No se encontraron calificaciones registradas para este alumno aún.</p>
+                  <div className={styles.summaryCardBody}>
+                    <div className={styles.attendanceSummaryValue}>
+                      <span className={styles.attendancePercentage}>{attendancePercentage}%</span>
+                      <span className={styles.attendancePercentageLabel}>Presentismo Global</span>
+                    </div>
+                    
+                    {latestAttendance ? (
+                      <div className={styles.latestAttendanceAlert}>
+                        <span>Último estado ({formatDate(latestAttendance.date)}):</span>
+                        <span className={`${styles.statusBadge} ${
+                          latestAttendance.status === 'PRESENT' ? styles.badgePresent :
+                          latestAttendance.status === 'ABSENT' ? styles.badgeAbsent :
+                          latestAttendance.status === 'LATE' ? styles.badgeLate : styles.badgeJustified
+                        }`}>
+                          {latestAttendance.status === 'PRESENT' ? 'Presente' :
+                           latestAttendance.status === 'ABSENT' ? 'Ausente' :
+                           latestAttendance.status === 'LATE' ? 'Tardanza' : 'Justificado'}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className={styles.noDataText}>Sin registros de inasistencias cargados.</p>
+                    )}
                   </div>
-                ) : (
-                  <div className={styles.tableContainer}>
-                    <table className={styles.bulletinTable}>
-                      <thead>
-                        <tr>
-                          <th>Materia</th>
-                          <th>Pre-Informe 1</th>
-                          <th>1º Cuatrimestre</th>
-                          <th>Pre-Informe 2</th>
-                          <th>2º Cuatrimestre</th>
-                          <th>Nota Final</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {bulletin.subjects.map((sub) => {
-                          const periods: ('PRE_INFORME_1' | 'CUATRIMESTRE_1' | 'PRE_INFORME_2' | 'CUATRIMESTRE_2' | 'FINAL')[] = [
-                            'PRE_INFORME_1', 'CUATRIMESTRE_1', 'PRE_INFORME_2', 'CUATRIMESTRE_2', 'FINAL'
-                          ];
+                </div>
 
-                          return (
-                            <tr key={sub.subjectId}>
-                              <td>
-                                <div>{sub.subjectName}</div>
-                                {sub.teacher && (
-                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                    Prof: {sub.teacher.lastName}, {sub.teacher.name}
-                                  </div>
-                                )}
-                              </td>
+                {/* 3. Academic Novedades Card */}
+                <div className={styles.summaryCard}>
+                  <div className={styles.summaryCardHeader}>
+                    <div className={styles.summaryCardTitle}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                      </svg>
+                      <span>Últimas Calificaciones</span>
+                    </div>
+                    <button className={styles.textLinkBtn} onClick={() => setActiveTab('boletin')}>Ver boletín</button>
+                  </div>
+                  <div className={styles.summaryCardBody}>
+                    {recentGrades.length > 0 ? (
+                      <div className={styles.recentGradesList}>
+                        {recentGrades.map((g, idx) => (
+                          <div key={idx} className={styles.recentGradeRow}>
+                            <div className={styles.recentGradeMeta}>
+                              <span className={styles.recentGradeSubject}>{g.subjectName}</span>
+                              <span className={styles.recentGradePeriod}>{g.period}</span>
+                            </div>
+                            <div className={styles.recentGradeVal}>
+                              {g.numericValue !== null && (
+                                <span className={styles.recentGradeNum}>{g.numericValue}</span>
+                              )}
+                              {g.concept && (
+                                <span className={`${styles.recentGradeConcept} ${
+                                  g.concept === 'TEA' ? styles.badgeTEA :
+                                  g.concept === 'TEP' ? styles.badgeTEP : styles.badgeTED
+                                }`}>
+                                  {g.concept}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className={styles.noDataText}>Aún no se registran calificaciones en este ciclo.</p>
+                    )}
+                  </div>
+                </div>
 
-                              {periods.map((period) => {
-                                const grade = sub.grades[period];
-                                
-                                // Return empty dash if period grade doesn't exist
-                                if (!grade) {
-                                  return <td key={period}>&mdash;</td>;
-                                }
+                {/* 4. Latest Comunicados Card */}
+                <div className={`${styles.summaryCard} ${styles.spanTwoColumns}`}>
+                  <div className={styles.summaryCardHeader}>
+                    <div className={styles.summaryCardTitle}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                      </svg>
+                      <span>Últimos Comunicados</span>
+                    </div>
+                    <button className={styles.textLinkBtn} onClick={() => setActiveTab('comunicados')}>Ver cuaderno</button>
+                  </div>
+                  <div className={styles.summaryCardBody}>
+                    {recentComms.length > 0 ? (
+                      <div className={styles.summaryCommsList}>
+                        {recentComms.map((comm) => (
+                          <article key={comm.id} className={styles.summaryCommRow} onClick={() => setActiveTab('comunicados')}>
+                            <div className={styles.summaryCommHeader}>
+                              <span className={styles.summaryCommTitleText}>{comm.title}</span>
+                              <span className={styles.summaryCommDateText}>{formatDate(comm.createdAt)}</span>
+                            </div>
+                            <p className={styles.summaryCommContentText}>{comm.content.substring(0, 140)}...</p>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className={styles.noDataText}>Sin comunicados recientes en la bandeja.</p>
+                    )}
+                  </div>
+                </div>
 
-                                // Style conceptual badge
-                                let conceptBadge = null;
-                                if (grade.concept) {
-                                  let badgeStyle = '';
-                                  if (grade.concept === 'TEA') badgeStyle = styles.badgeTEA;
-                                  if (grade.concept === 'TEP') badgeStyle = styles.badgeTEP;
-                                  if (grade.concept === 'TED') badgeStyle = styles.badgeTED;
-                                  conceptBadge = (
-                                    <span className={badgeStyle} title={grade.comments || ''}>
-                                      {grade.concept}
-                                    </span>
-                                  );
-                                }
-
-                                return (
-                                  <td key={period}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                                      {grade.numericValue !== null && (
-                                        <span className={styles.numericGrade}>
-                                          {grade.numericValue}
-                                        </span>
-                                      )}
-                                      {conceptBadge}
-                                      
-                                      {grade.comments && (
-                                        <span
-                                          className={styles.commentBubble}
-                                          title={`Comentario docente: "${grade.comments}"`}
-                                        >
-                                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                {/* 5. Preceptor Contact Card */}
+                {getActiveChild()?.course?.preceptor && (
+                  <div className={`${styles.summaryCard} ${styles.spanTwoColumns}`}>
+                    <div className={styles.summaryCardHeader}>
+                      <div className={styles.summaryCardTitle}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <circle cx="12" cy="8" r="4"/><path d="M18 21a6 6 0 0 0-12 0"/>
+                        </svg>
+                        <span>Contacto con Preceptoría</span>
+                      </div>
+                    </div>
+                    <div className={styles.summaryCardBody}>
+                      <div className={styles.preceptorContactRow}>
+                        <div className={styles.preceptorMeta}>
+                          <span className={styles.preceptorName}>
+                            Preceptor/a: <strong>{getActiveChild()?.course?.preceptor?.name} {getActiveChild()?.course?.preceptor?.lastName}</strong>
+                          </span>
+                          <span className={styles.preceptorEmail}>
+                            Email: {getActiveChild()?.course?.preceptor?.email}
+                          </span>
+                        </div>
+                        <a 
+                          href={`mailto:${getActiveChild()?.course?.preceptor?.email}`} 
+                          className={styles.contactEmailBtn}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                          </svg>
+                          <span>Enviar Mail</span>
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
+            )}
+
+            {/* 1. Academic Bulletin Tab */}
+            {activeTab === 'boletin' && (
+              <>
+                {loadingBulletin ? (
+                  <div className={styles.panelCard}>
+                    <div className={styles.loadingContainer}>
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                      <p>Cargando calificaciones del alumno...</p>
+                    </div>
+                  </div>
+                ) : !bulletin || !yearsList || yearsList.length === 0 ? (
+                  <div className={styles.panelCard}>
+                    <div className={styles.emptyFeed}>
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      <p>No se encontraron calificaciones registradas para este alumno aún.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={styles.bulletinCardsContainer}>
+                    {yearsList.map((y) => {
+                      const historyEntry = bulletin.academicHistory[y];
+                      if (!historyEntry) return null;
+
+                      return (
+                        <div key={y} className={styles.panelCard}>
+                          <div className={styles.panelHeader}>
+                            <div className={styles.panelTitle}>
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                              </svg>
+                              <span>
+                                Curso: {historyEntry.course ? `${historyEntry.course.year}° "${historyEntry.course.division}"` : 'Sin Curso'}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                              Ciclo Lectivo: <strong>{historyEntry.schoolYear}</strong> {historyEntry.course?.shift ? `- Turno ${historyEntry.course.shift}` : ''}
+                            </span>
+                          </div>
+
+                          {historyEntry.subjects.length === 0 ? (
+                            <div className={styles.emptyFeed} style={{ padding: '24px' }}>
+                              <p>No se encontraron materias registradas para este ciclo lectivo.</p>
+                            </div>
+                          ) : (
+                            <div className={styles.tableContainer}>
+                              <table className={styles.bulletinTable}>
+                                <thead>
+                                  <tr>
+                                    <th>Materia</th>
+                                    <th>Pre-Informe 1</th>
+                                    <th>1º Cuatrimestre</th>
+                                    <th>Pre-Informe 2</th>
+                                    <th>2º Cuatrimestre</th>
+                                    <th>Nota Final</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {historyEntry.subjects.map((sub) => {
+                                    const periods: ('PRE_INFORME_1' | 'CUATRIMESTRE_1' | 'PRE_INFORME_2' | 'CUATRIMESTRE_2' | 'FINAL')[] = [
+                                      'PRE_INFORME_1', 'CUATRIMESTRE_1', 'PRE_INFORME_2', 'CUATRIMESTRE_2', 'FINAL'
+                                    ];
+
+                                    return (
+                                      <tr key={sub.subjectId}>
+                                        <td>
+                                          <div>{sub.subjectName}</div>
+                                          {sub.teacher && (
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                              Prof: {sub.teacher.lastName}, {sub.teacher.name}
+                                            </div>
+                                          )}
+                                        </td>
+
+                                        {periods.map((period) => {
+                                          const grade = sub.grades[period];
+                                          
+                                          // Return empty dash if period grade doesn't exist
+                                          if (!grade) {
+                                            return <td key={period}>&mdash;</td>;
+                                          }
+
+                                          // Style conceptual badge
+                                          let conceptBadge = null;
+                                          if (grade.concept) {
+                                            let badgeStyle = '';
+                                            if (grade.concept === 'TEA') badgeStyle = styles.badgeTEA;
+                                            if (grade.concept === 'TEP') badgeStyle = styles.badgeTEP;
+                                            if (grade.concept === 'TED') badgeStyle = styles.badgeTED;
+                                            conceptBadge = (
+                                              <span className={badgeStyle} title={grade.comments || ''}>
+                                                {grade.concept}
+                                              </span>
+                                            );
+                                          }
+
+                                          return (
+                                            <td key={period}>
+                                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                                {grade.numericValue !== null && (
+                                                  <span className={styles.numericGrade}>
+                                                    {grade.numericValue}
+                                                  </span>
+                                                )}
+                                                {conceptBadge}
+                                                
+                                                {grade.comments && (
+                                                  <span
+                                                    className={styles.commentBubble}
+                                                    title={`Comentario docente: "${grade.comments}"`}
+                                                  >
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </td>
+                                          );
+                                        })}
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
 
             {/* 2. Attendance Summary & History Logs */}

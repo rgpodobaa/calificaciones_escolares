@@ -2,44 +2,44 @@
 
 :root {
   /* Colors - Light Theme */
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #f1f5f9;
+  --bg-primary: #fcfcfd;       /* Clean neutral off-white */
+  --bg-secondary: #ffffff;     /* Pure white for cards and paper layout */
+  --bg-tertiary: #f4f4f5;      /* Zinc grey for table headers and soft borders */
   
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-primary: #18181b;     /* Slate-900 / Zinc-900 for high readability */
+  --text-secondary: #52525b;   /* Slate-600 for secondary text */
+  --text-muted: #a1a1aa;       /* Zinc-400 for disabled/placeholder state */
   
-  --brand-primary: #6366f1; /* Indigo */
-  --brand-hover: #4f46e5;
-  --brand-light: rgba(99, 102, 241, 0.1);
+  --brand-primary: #2563eb;    /* Pure, clean Royal Blue for brand accents */
+  --brand-hover: #1d4ed8;
+  --brand-light: rgba(37, 99, 235, 0.05); /* Softest blue overlay */
   
-  --accent-cyan: #06b6d4;
-  --accent-emerald: #10b981;
-  --accent-rose: #f43f5e;
-  --accent-amber: #f59e0b;
+  --accent-cyan: #06b6d4;      /* Cyber/Info blue */
+  --accent-emerald: #10b981;   /* Soft success emerald */
+  --accent-rose: #f43f5e;      /* Soft error rose */
+  --accent-amber: #f59e0b;     /* Soft warning amber */
   
-  /* Borders and Shadows */
-  --border-color: rgba(226, 232, 240, 0.8);
-  --border-focus: rgba(99, 102, 241, 0.4);
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.4);
+  /* Borders and Shadows (Flat and subtle paper aesthetics) */
+  --border-color: rgba(228, 228, 231, 0.6); /* Very faint Zinc-200 border */
+  --border-focus: rgba(37, 99, 235, 0.2);   /* Sutil focus outline */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(228, 228, 231, 0.4);
   
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
-  --shadow-premium: 0 20px 40px -15px rgba(15, 23, 42, 0.12);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.04);
+  --shadow-premium: 0 16px 40px rgba(24, 24, 27, 0.04);
   
   /* Radii */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-sm: 6px;            /* Sleeker, slightly sharper corners */
+  --radius-md: 10px;
+  --radius-lg: 14px;
   --radius-full: 9999px;
   
   /* Transitions */
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 0.1s ease;
+  --transition-normal: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   
   /* Fonts */
   --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -47,18 +47,18 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Colors - Dark Theme (High End Deep Slate/Indigo) */
-    --bg-primary: #070913;
-    --bg-secondary: #0d1127;
-    --bg-tertiary: #141b36;
+    /* Colors - Dark Theme (High End Minimalist Slate) */
+    --bg-primary: #09090b;
+    --bg-secondary: #121214;
+    --bg-tertiary: #1a1a1e;
     
-    --text-primary: #f8fafc;
-    --text-secondary: #cbd5e1;
-    --text-muted: #64748b;
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-muted: #52525b;
     
-    --brand-primary: #818cf8; /* Light Indigo */
-    --brand-hover: #6366f1;
-    --brand-light: rgba(129, 140, 248, 0.15);
+    --brand-primary: #3b82f6;
+    --brand-hover: #2563eb;
+    --brand-light: rgba(59, 130, 246, 0.1);
     
     --accent-cyan: #22d3ee;
     --accent-emerald: #34d399;
@@ -66,15 +66,15 @@
     --accent-amber: #fbbf24;
     
     /* Borders and Shadows */
-    --border-color: rgba(255, 255, 255, 0.08);
-    --border-focus: rgba(129, 140, 248, 0.5);
-    --glass-bg: rgba(13, 17, 39, 0.6);
-    --glass-border: rgba(255, 255, 255, 0.08);
+    --border-color: rgba(255, 255, 255, 0.06);
+    --border-focus: rgba(59, 130, 246, 0.3);
+    --glass-bg: rgba(18, 18, 20, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.05);
     
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
-    --shadow-premium: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    --shadow-premium: 0 20px 40px rgba(0, 0, 0, 0.4);
   }
 }
 

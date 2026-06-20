@@ -28,6 +28,7 @@ interface Student {
   familyId: string | null;
   course: Course | null;
   family: Family | null;
+  active: boolean;
 }
 
 export default function StudentsABM() {
@@ -40,6 +41,7 @@ export default function StudentsABM() {
   // Filtros
   const [searchQuery, setSearchQuery] = useState('');
   const [courseFilter, setCourseFilter] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
 
   // Estados de Modales
   const [showFormModal, setShowFormModal] = useState(false);
@@ -55,7 +57,8 @@ export default function StudentsABM() {
     dni: '',
     birthDate: '',
     courseId: '',
-    familyId: ''
+    familyId: '',
+    active: true
   });
 
   const [formError, setFormError] = useState<string | null>(null);
@@ -66,8 +69,9 @@ export default function StudentsABM() {
     setLoading(true);
     setError(null);
     try {
+      const studentQuery = showInactive ? '?includeInactive=true' : '';
       const [studentsData, coursesData, familiesData] = await Promise.all([
-        apiGet('/admin/students'),
+        apiGet(`/admin/students${studentQuery}`),
         apiGet('/admin/courses'),
         apiGet('/admin/users?role=FAMILIA')
       ]);
@@ -84,7 +88,7 @@ export default function StudentsABM() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [showInactive]);
 
   // Abrir modal para Crear
   const handleOpenCreate = () => {
@@ -95,7 +99,8 @@ export default function StudentsABM() {
       dni: '',
       birthDate: '',
       courseId: courses[0]?.id || '',
-      familyId: ''
+      familyId: '',
+      active: true
     });
     setFormError(null);
     setShowFormModal(true);
@@ -115,7 +120,8 @@ export default function StudentsABM() {
       dni: student.dni,
       birthDate: formattedDate,
       courseId: student.courseId || '',
-      familyId: student.familyId || ''
+      familyId: student.familyId || '',
+      active: student.active
     });
     setFormError(null);
     setShowFormModal(true);
@@ -145,7 +151,8 @@ export default function StudentsABM() {
         dni: formData.dni,
         birthDate: formData.birthDate || null,
         courseId: formData.courseId || null,
-        familyId: formData.familyId || null
+        familyId: formData.familyId || null,
+        active: formData.active
       };
 
       if (selectedStudent) {
@@ -232,6 +239,16 @@ export default function StudentsABM() {
               </option>
             ))}
           </select>
+          
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-secondary)', marginLeft: '12px' }}>
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              style={{ width: '16px', height: '16px', accentColor: 'var(--brand-primary)' }}
+            />
+            <span>Mostrar inactivos</span>
+          </label>
         </div>
         
         <button className={styles.createButton} onClick={handleOpenCreate}>
@@ -266,6 +283,7 @@ export default function StudentsABM() {
                 <th>Fecha Nacimiento</th>
                 <th>Curso</th>
                 <th>Tutor Familiar</th>
+                <th>Estado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -302,6 +320,21 @@ export default function StudentsABM() {
                     ) : (
                       <em style={{ color: 'var(--text-muted)' }}>Sin vincular</em>
                     )}
+                  </td>
+                  <td>
+                    <span style={{
+                      display: 'inline-block',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      padding: '3px 10px',
+                      borderRadius: '9999px',
+                      textTransform: 'uppercase',
+                      backgroundColor: student.active ? 'rgba(16, 185, 129, 0.1)' : 'rgba(148, 163, 184, 0.1)',
+                      color: student.active ? 'var(--accent-emerald)' : 'var(--text-muted)',
+                      border: '1px solid currentColor'
+                    }}>
+                      {student.active ? 'Activo' : 'Inactivo'}
+                    </span>
                   </td>
                   <td>
                     <div className={styles.actionBtns}>
@@ -420,6 +453,20 @@ export default function StudentsABM() {
                 </div>
               </div>
 
+              {selectedStudent && (
+                <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+                  <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '8px' }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.active}
+                      onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
+                      style={{ width: '18px', height: '18px', accentColor: 'var(--brand-primary)' }}
+                    />
+                    <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>Alumno Activo (Habilitado en el ciclo)</span>
+                  </label>
+                </div>
+              )}
+
               <div className={styles.formActions}>
                 <button type="button" className={styles.cancelButton} onClick={() => setShowFormModal(false)} disabled={formLoading}>
                   Cancelar
@@ -444,10 +491,10 @@ export default function StudentsABM() {
                   <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
               </div>
-              <h3>¿Eliminar Alumno?</h3>
+              <h3>¿Dar de Baja Alumno?</h3>
               <p>
-                ¿Estás seguro de que deseas dar de baja y eliminar los registros del estudiante <strong>{selectedStudent.firstName} {selectedStudent.lastName}</strong>?<br />
-                Esta acción es permanente y borrará su historial de asistencias y calificaciones asociadas.
+                ¿Estás seguro de que deseas dar de baja al estudiante <strong>{selectedStudent.firstName} {selectedStudent.lastName}</strong>?<br />
+                Su registro pasará al estado <strong>Inactivo</strong>, interrumpiendo su participación activa en el curso, y podrá reactivarse desde su edición.
               </p>
             </div>
             
@@ -456,7 +503,7 @@ export default function StudentsABM() {
                 Cancelar
               </button>
               <button type="button" className={styles.confirmDeleteBtn} onClick={handleDeleteConfirm}>
-                Confirmar Eliminación
+                Confirmar Baja
               </button>
             </div>
           </div>

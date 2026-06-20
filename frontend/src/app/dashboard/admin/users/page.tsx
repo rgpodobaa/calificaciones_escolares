@@ -11,6 +11,7 @@ interface User {
   name: string;
   lastName: string;
   dni: string;
+  active: boolean;
 }
 
 export default function UsersABM() {
@@ -21,6 +22,7 @@ export default function UsersABM() {
   // Filtros
   const [roleFilter, setRoleFilter] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showInactive, setShowInactive] = useState<boolean>(false);
 
   // Estados de Modales
   const [showFormModal, setShowFormModal] = useState(false);
@@ -36,7 +38,8 @@ export default function UsersABM() {
     email: '',
     password: '',
     dni: '',
-    role: 'DOCENTE'
+    role: 'DOCENTE',
+    active: true
   });
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
@@ -46,7 +49,10 @@ export default function UsersABM() {
     setLoading(true);
     setError(null);
     try {
-      const query = roleFilter ? `?role=${roleFilter}` : '';
+      const queryParams = [];
+      if (roleFilter) queryParams.push(`role=${roleFilter}`);
+      if (showInactive) queryParams.push(`includeInactive=true`);
+      const query = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
       const data = await apiGet(`/admin/users${query}`);
       setUsers(data);
     } catch (err: any) {
@@ -58,7 +64,7 @@ export default function UsersABM() {
 
   useEffect(() => {
     loadUsers();
-  }, [roleFilter]);
+  }, [roleFilter, showInactive]);
 
   // Abrir modal para Crear
   const handleOpenCreate = () => {
@@ -69,7 +75,8 @@ export default function UsersABM() {
       email: '',
       password: '',
       dni: '',
-      role: 'DOCENTE'
+      role: 'DOCENTE',
+      active: true
     });
     setFormError(null);
     setShowFormModal(true);
@@ -84,7 +91,8 @@ export default function UsersABM() {
       email: user.email,
       password: '', // En blanco por defecto
       dni: user.dni,
-      role: user.role
+      role: user.role,
+      active: user.active
     });
     setFormError(null);
     setShowFormModal(true);
@@ -122,7 +130,8 @@ export default function UsersABM() {
           lastName: formData.lastName,
           email: formData.email,
           dni: formData.dni,
-          role: formData.role
+          role: formData.role,
+          active: formData.active
         };
         // Si ingresó contraseña nueva, mandarla
         if (formData.password) {
@@ -201,6 +210,16 @@ export default function UsersABM() {
             <option value="DOCENTE">Docentes</option>
             <option value="FAMILIA">Familias</option>
           </select>
+          
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-secondary)', marginLeft: '12px' }}>
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              style={{ width: '16px', height: '16px', accentColor: 'var(--brand-primary)' }}
+            />
+            <span>Mostrar inactivos</span>
+          </label>
         </div>
         
         <button className={styles.createButton} onClick={handleOpenCreate}>
@@ -237,6 +256,7 @@ export default function UsersABM() {
                 <th>DNI</th>
                 <th>Email</th>
                 <th>Rol</th>
+                <th>Estado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -266,6 +286,21 @@ export default function UsersABM() {
                       border: '1px solid currentColor'
                     }}>
                       {user.role}
+                    </span>
+                  </td>
+                  <td>
+                    <span style={{
+                      display: 'inline-block',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      padding: '3px 10px',
+                      borderRadius: '9999px',
+                      textTransform: 'uppercase',
+                      backgroundColor: user.active ? 'rgba(16, 185, 129, 0.1)' : 'rgba(148, 163, 184, 0.1)',
+                      color: user.active ? 'var(--accent-emerald)' : 'var(--text-muted)',
+                      border: '1px solid currentColor'
+                    }}>
+                      {user.active ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
                   <td>
@@ -401,6 +436,20 @@ export default function UsersABM() {
                 </div>
               </div>
 
+              {selectedUser && (
+                <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+                  <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '8px' }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.active}
+                      onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
+                      style={{ width: '18px', height: '18px', accentColor: 'var(--brand-primary)' }}
+                    />
+                    <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>Estado de la Cuenta (Activa / Habilitada)</span>
+                  </label>
+                </div>
+              )}
+
               <div className={styles.formActions}>
                 <button 
                   type="button" 
@@ -435,10 +484,10 @@ export default function UsersABM() {
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
               </div>
-              <h3>¿Eliminar Usuario?</h3>
+              <h3>¿Dar de Baja Usuario?</h3>
               <p>
-                ¿Estás seguro de que deseas eliminar a <strong>{selectedUser.name} {selectedUser.lastName}</strong> ({selectedUser.role})?<br />
-                Esta acción es irreversible y podría afectar los registros de cursos o alumnos asociados.
+                ¿Estás seguro de que deseas dar de baja al usuario <strong>{selectedUser.name} {selectedUser.lastName}</strong> ({selectedUser.role})?<br />
+                Esta acción inhabilitará su acceso a la plataforma (estado Inactivo) y podrá ser revertida editando su cuenta.
               </p>
             </div>
             
@@ -455,7 +504,7 @@ export default function UsersABM() {
                 className={styles.confirmDeleteBtn}
                 onClick={handleDeleteConfirm}
               >
-                Confirmar Eliminación
+                Confirmar Baja
               </button>
             </div>
           </div>

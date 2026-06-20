@@ -264,7 +264,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-hover) 100%);
+  background-color: var(--brand-primary);
   color: #ffffff;
   border: none;
   padding: 12px 24px;
@@ -274,12 +274,13 @@
   font-size: 0.95rem;
   cursor: pointer;
   transition: all var(--transition-fast);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.18);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
 }
 
 .saveButton:hover:not(:disabled) {
-  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.3);
-  transform: translateY(-1px);
+  background-color: var(--brand-hover);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  transform: translateY(-0.5px);
 }
 
 .saveButton:disabled {
@@ -310,8 +311,8 @@
 }
 
 .alertInfo {
-  background-color: rgba(99, 102, 241, 0.08);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  background-color: var(--brand-light);
+  border: 1px solid rgba(37, 99, 235, 0.15);
   color: var(--brand-primary);
 }
 
@@ -342,7 +343,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-hover) 100%);
+  background-color: var(--brand-primary);
   color: #ffffff;
   border: none;
   padding: 12px 20px;
@@ -352,16 +353,122 @@
   font-size: 0.95rem;
   cursor: pointer;
   transition: all var(--transition-fast);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
   width: 100%;
 }
 
 .submitCommunicationBtn:hover:not(:disabled) {
-  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.25);
-  transform: translateY(-1px);
+  background-color: var(--brand-hover);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  transform: translateY(-0.5px);
 }
 
 .submitCommunicationBtn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Tabs Navigation for Preceptors */
+.tabNav {
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 16px;
+}
+
+.tabBtn {
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  font-family: var(--font-main);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tabBtn:hover {
+  color: var(--text-primary);
+}
+
+.tabBtnActive {
+  color: var(--brand-primary);
+  border-bottom-color: var(--brand-primary);
+}
+
+.tabContent {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Live Stats & Bulk Actions Bar */
+.statsAndActionsBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.liveStats {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.statLabel {
+  font-size: 0.725rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.statVal {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.statPresent .statVal { color: var(--accent-emerald); }
+.statAbsent .statVal { color: var(--accent-rose); }
+.statLate .statVal { color: var(--accent-amber); }
+.statJustified .statVal { color: var(--accent-cyan); }
+
+.bulkActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-main);
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.bulkActionBtn:hover {
+  background-color: var(--brand-light);
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  transform: translateY(-0.5px);
 }

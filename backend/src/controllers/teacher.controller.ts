@@ -78,7 +78,7 @@ export const getSubjectStudents = async (req: AuthRequest, res: Response): Promi
 
     // Obtener los alumnos del curso de esta materia
     const students = await prisma.student.findMany({
-      where: { courseId: subject.courseId },
+      where: { courseId: subject.courseId, active: true },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }]
     });
 
@@ -137,7 +137,13 @@ export const getSubjectStudents = async (req: AuthRequest, res: Response): Promi
 export const upsertGrade = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { studentId, subjectId, period, comments } = req.body;
-    let { concept, numericValue } = req.body;
+    let { concept, numericValue, schoolYear } = req.body;
+
+    if (schoolYear !== undefined && schoolYear !== null) {
+      schoolYear = Number(schoolYear);
+    } else {
+      schoolYear = new Date().getFullYear();
+    }
     const userId = req.user?.id;
     const userRole = req.user?.role;
 
@@ -257,10 +263,11 @@ export const upsertGrade = async (req: AuthRequest, res: Response): Promise<void
     // Upsert de la calificación
     const grade = await prisma.grade.upsert({
       where: {
-        studentId_subjectId_period: {
+        studentId_subjectId_period_schoolYear: {
           studentId,
           subjectId,
-          period: period as GradePeriod
+          period: period as GradePeriod,
+          schoolYear
         }
       },
       update: {
@@ -276,7 +283,8 @@ export const upsertGrade = async (req: AuthRequest, res: Response): Promise<void
         concept: concept as ConceptGrade | null,
         numericValue,
         comments: comments || null,
-        teacherId: userId
+        teacherId: userId,
+        schoolYear
       }
     });
 

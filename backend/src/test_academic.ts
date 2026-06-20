@@ -237,10 +237,15 @@ async function runTests() {
   
   const reportData = resReportCard.jsonData;
   assert(reportData.student.firstName === 'Juan', 'Nombre del estudiante incorrecto');
-  assert(reportData.subjects.length === 1, 'Debe haber una materia');
-  assert(reportData.subjects[0].grades.PRE_INFORME_1.concept === 'TEA', 'Pre-informe incorrecto en boletín');
-  assert(reportData.subjects[0].grades.CUATRIMESTRE_1.numericValue === 8.0, 'Cuatrimestre incorrecto en boletín');
-  assert(reportData.subjects[0].grades.FINAL.numericValue === 9.0, 'Nota final incorrecta en boletín');
+  
+  const currentYear = new Date().getFullYear();
+  const historyKey = Object.keys(reportData.academicHistory).find(k => k.startsWith(String(currentYear)));
+  assert(historyKey !== undefined, 'Debe existir historial para el año actual');
+  const history = reportData.academicHistory[historyKey!];
+  assert(history.subjects.length === 1, 'Debe haber una materia en el año actual');
+  assert(history.subjects[0].grades.PRE_INFORME_1.concept === 'TEA', 'Pre-informe incorrecto en boletín');
+  assert(history.subjects[0].grades.CUATRIMESTRE_1.numericValue === 8.0, 'Cuatrimestre incorrecto en boletín');
+  assert(history.subjects[0].grades.FINAL.numericValue === 9.0, 'Nota final incorrecta en boletín');
   assert(reportData.attendanceSummary.present === 1, 'Asistencia "presente" incorrecta');
 
   // ==========================================
@@ -284,6 +289,224 @@ async function runTests() {
   assert(commList.some((c: any) => c.title === 'General'), 'No ve comunicado general');
   assert(commList.some((c: any) => c.title === 'Curso 1A'), 'No ve comunicado del curso de su hijo');
   assert(!commList.some((c: any) => c.title === 'Otra Familia'), 'Ve un comunicado privado de otra familia!');
+
+  // ==========================================
+  // PRUEBA 5: Borrado Lógico (Inactivación)
+  // ==========================================
+  console.log('Prueba 5: Borrado Lógico (Soft Delete) y Filtros...');
+
+  const adminController = require('./controllers/admin.controller');
+  const authController = require('./controllers/auth.controller');
+
+  // 5a. Inactivar el docente de prueba
+  const reqInactivateTeacher: any = {
+    params: { id: docente.id }
+  };
+  const resInactivateTeacher = makeMockResponse();
+  await adminController.deleteUser(reqInactivateTeacher, resInactivateTeacher);
+  assert(resInactivateTeacher.statusCode === undefined || resInactivateTeacher.statusCode === 200, 'Fallo al inactivar docente');
+
+  // Verificar que el docente inactivo no puede iniciar sesión
+  const reqLoginDocente: any = {
+    body: { email: 'docente_test@colegio.edu.ar', password: 'password123' }
+  };
+  const resLoginDocente = makeMockResponse();
+  await authController.login(reqLoginDocente, resLoginDocente);
+  assert(resLoginDocente.statusCode === 401, 'El docente inactivo no debió poder hacer login');
+
+  // 5b. Inactivar al alumno de prueba
+  const reqInactivateStudent: any = {
+    params: { id: alumno.id }
+  };
+  const resInactivateStudent = makeMockResponse();
+  await adminController.deleteStudent(reqInactivateStudent, resInactivateStudent);
+  assert(resInactivateStudent.statusCode === undefined || resInactivateStudent.statusCode === 200, 'Fallo al inactivar alumno');
+
+  // Verificar que el alumno inactivo no aparece en getCourseStudents (Preceptor)
+  const reqGetCourseStudents: any = {
+    user: { id: preceptor.id, role: Role.PRECEPTOR },
+    params: { courseId: curso.id }
+  };
+  const resGetCourseStudents = makeMockResponse();
+  await preceptorController.getCourseStudents(reqGetCourseStudents, resGetCourseStudents);
+  const courseStudents = resGetCourseStudents.jsonData;
+  assert(!courseStudents.some((s: any) => s.id === alumno.id), 'El alumno inactivo no debería aparecer en la lista de alumnos del curso');
+
+  // Verificar que el alumno inactivo no aparece en getSubjectStudents (Docente)
+  const reqGetSubjectStudents: any = {
+    user: { id: docente.id, role: Role.DOCENTE },
+    params: { subjectId: materia.id }
+  };
+  const resGetSubjectStudents = makeMockResponse();
+  await teacherController.getSubjectStudents(reqGetSubjectStudents, resGetSubjectStudents);
+  const subjectStudents = resGetSubjectStudents.jsonData.students;
+  assert(!subjectStudents.some((s: any) => s.studentId === alumno.id), 'El alumno inactivo no debería aparecer en la lista de la materia del docente');
+
+  // Verificar que los datos históricos de notas del alumno inactivo sigan existiendo en la DB
+  const dbGrades = await prisma.grade.findMany({
+    where: { studentId: alumno.id }
+  });
+  assert(dbGrades.length > 0, 'Las notas históricas del alumno se eliminaron físicamente!');
+
+  // ==========================================
+  // PRUEBA 6: Traspaso de Curso (Remapeo de notas)
+  // ==========================================
+  console.log('Prueba 6: Traspaso de Curso (Remapeo de notas)...');
+
+  // Reactivar al alumno de prueba
+  await prisma.student.update({
+    where: { id: alumno.id },
+    data: { active: true }
+  });
+
+  // Crear un nuevo curso de destino (1º B)
+  const cursoB = await prisma.course.create({
+    data: {
+      year: 1,
+      division: 'B',
+      shift: 'MANANA'
+    }
+  });
+
+  // Crear la misma materia "Matemática I" en el Curso B
+  const materiaB = await prisma.subject.create({
+    data: {
+      name: 'Matemática I',
+      courseId: cursoB.id,
+      teacherId: docente.id
+    }
+  });
+
+  // Transferir al alumno al Curso B usando la API updateStudent
+  const reqTransfer: any = {
+    params: { id: alumno.id },
+    body: {
+      firstName: alumno.firstName,
+      lastName: alumno.lastName,
+      dni: alumno.dni,
+      courseId: cursoB.id
+    }
+  };
+  const resTransfer = makeMockResponse();
+  await adminController.updateStudent(reqTransfer, resTransfer);
+  assert(resTransfer.statusCode === undefined || resTransfer.statusCode === 200, 'Fallo al transferir alumno');
+
+  // Verificar que el alumno pertenece al nuevo curso en la base de datos
+  const dbStudentAfterTransfer = await prisma.student.findUnique({
+    where: { id: alumno.id }
+  });
+  assert(dbStudentAfterTransfer?.courseId === cursoB.id, 'El alumno no se actualizó al curso de destino');
+
+  // Verificar que las calificaciones ahora apuntan a la materia del Curso B (materiaB.id)
+  const dbGradesAfterTransfer = await prisma.grade.findMany({
+    where: { studentId: alumno.id }
+  });
+
+  assert(dbGradesAfterTransfer.length > 0, 'Las notas desaparecieron durante la transferencia');
+  assert(dbGradesAfterTransfer.every(g => g.subjectId === materiaB.id), 'Alguna nota no se remapeó correctamente a la materia del nuevo curso');
+
+  // ==========================================
+  // PRUEBA 7: Cierre de Ciclo y Promoción de Alumnos
+  // ==========================================
+  console.log('Prueba 7: Cierre de Ciclo y Promoción de Alumnos...');
+
+  // Asegurar que la nota de Matemática I que tiene Juan de Prueba 6 tenga el schoolYear 2026
+  await prisma.grade.updateMany({
+    where: { studentId: alumno.id },
+    data: { schoolYear: 2026 }
+  });
+
+  // Crear curso 2º B en la institución
+  const curso2B = await prisma.course.create({
+    data: {
+      year: 2,
+      division: 'B',
+      shift: 'MANANA'
+    }
+  });
+
+  // Crear materia "Matemática II" en 2º B
+  const materia2B = await prisma.subject.create({
+    data: {
+      name: 'Matemática II',
+      courseId: curso2B.id,
+      teacherId: docente.id
+    }
+  });
+
+  // Ejecutar promoción de alumnos
+  const reqPromote: any = {
+    body: {
+      repeatingStudentIds: [] // Juan no repite, se promueve!
+    }
+  };
+  const resPromote = makeMockResponse();
+  await adminController.promoteStudents(reqPromote, resPromote);
+  assert(resPromote.statusCode === undefined || resPromote.statusCode === 200, 'Fallo al ejecutar la promoción');
+
+  // Verificar que Juan fue promovido a 2º B
+  const dbStudentAfterPromotion = await prisma.student.findUnique({
+    where: { id: alumno.id }
+  });
+  assert(dbStudentAfterPromotion?.courseId === curso2B.id, 'Juan debió ser promovido a 2º B');
+
+  // Cargar una calificación para Juan en Matemática II (Curso 2º B) para el ciclo 2027
+  const reqGrade2027: any = {
+    user: { id: docente.id, role: Role.DOCENTE },
+    body: {
+      studentId: alumno.id,
+      subjectId: materia2B.id,
+      period: GradePeriod.CUATRIMESTRE_1,
+      numericValue: 9.0,
+      schoolYear: 2027
+    }
+  };
+  const resGrade2027 = makeMockResponse();
+  await teacherController.upsertGrade(reqGrade2027, resGrade2027);
+  assert(resGrade2027.jsonData.grade.schoolYear === 2027, 'No se guardó el ciclo 2027');
+
+  // Cargar una calificación para OTRO estudiante en la materia Matemática I (Curso 1º B) para el ciclo 2027 (simulando que la materia estática Matemática I se sigue dictando y no colisiona con el ciclo 2026 de Juan)
+  const otroAlumno = await prisma.student.create({
+    data: {
+      firstName: 'Pedro',
+      lastName: 'Gómez',
+      dni: '88777666',
+      courseId: cursoB.id
+    }
+  });
+
+  const reqGradeOtro2027: any = {
+    user: { id: docente.id, role: Role.DOCENTE },
+    body: {
+      studentId: otroAlumno.id,
+      subjectId: materiaB.id,
+      period: GradePeriod.CUATRIMESTRE_1,
+      numericValue: 7.0,
+      schoolYear: 2027
+    }
+  };
+  const resGradeOtro2027 = makeMockResponse();
+  await teacherController.upsertGrade(reqGradeOtro2027, resGradeOtro2027);
+  assert(resGradeOtro2027.jsonData.grade.schoolYear === 2027, 'No se guardó el ciclo 2027 para el otro alumno');
+
+  // Consultar boletín de Juan y verificar agrupación
+  const reqBoletinHist: any = {
+    user: { id: familia.id, role: Role.FAMILIA },
+    params: { studentId: alumno.id }
+  };
+  const resBoletinHist = makeMockResponse();
+  await studentController.getStudentReportCard(reqBoletinHist, resBoletinHist);
+  
+  const boletinHist = resBoletinHist.jsonData.academicHistory;
+  const keys = Object.keys(boletinHist);
+  assert(keys.some(k => k.startsWith('2026')), 'No figura el boletín histórico 2026');
+  assert(keys.some(k => k.startsWith('2027')), 'No figura el boletín del año actual 2027');
+  
+  // Limpiar datos creados en Prueba 7
+  await prisma.grade.deleteMany({ where: { studentId: { in: [alumno.id, otroAlumno.id] } } });
+  await prisma.student.delete({ where: { id: otroAlumno.id } });
+  await prisma.subject.delete({ where: { id: materia2B.id } });
+  await prisma.course.delete({ where: { id: curso2B.id } });
 
   console.log('--- TODAS LAS PRUEBAS DE INTEGRACIÓN SE COMPLETARON CON ÉXITO ---');
 }

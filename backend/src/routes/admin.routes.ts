@@ -5,7 +5,8 @@ import {
   createUser, getUsers, updateUser, deleteUser,
   createCourse, getCourses, updateCourse, deleteCourse,
   createSubject, getSubjects, updateSubject, deleteSubject,
-  createStudent, getStudents, updateStudent, deleteStudent
+  createStudent, getStudents, updateStudent, deleteStudent,
+  promoteStudents
 } from '../controllers/admin.controller';
 
 const router = Router();
@@ -37,5 +38,8 @@ router.post('/students', createStudent);
 router.get('/students', getStudents);
 router.put('/students/:id', updateStudent);
 router.delete('/students/:id', deleteStudent);
+
+// Cierre de Ciclo
+router.post('/promote-students', promoteStudents);
 
 export default router;

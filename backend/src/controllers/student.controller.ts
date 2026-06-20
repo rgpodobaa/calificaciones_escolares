@@ -92,27 +92,26 @@ export const getStudentReportCard = async (req: AuthRequest, res: Response): Pro
     // RECOPILAR DATOS DEL BOLETÍN
     // ==========================================
 
-    // 1. Obtener todas las materias del curso del estudiante
-    const subjects = await prisma.subject.findMany({
-      where: { courseId: student.courseId || '' },
-      include: {
-        teacher: { select: { id: true, name: true, lastName: true } }
-      },
-      orderBy: { name: 'asc' }
-    });
-
-    // 2. Obtener todas las calificaciones del alumno
+    // 1. Obtener todas las calificaciones del alumno con materias y cursos
     const grades = await prisma.grade.findMany({
-      where: { studentId }
+      where: { studentId },
+      include: {
+        subject: {
+          include: {
+            course: true,
+            teacher: { select: { id: true, name: true, lastName: true } }
+          }
+        }
+      }
     });
 
-    // 3. Obtener todas las asistencias del alumno
+    // 2. Obtener todas las asistencias del alumno
     const attendances = await prisma.attendance.findMany({
       where: { studentId },
       orderBy: { date: 'asc' }
     });
 
-    // 4. Calcular el resumen de asistencias
+    // 3. Calcular el resumen de asistencias
     const attendanceSummary = {
       present: attendances.filter(a => a.status === 'PRESENT').length,
       absent: attendances.filter(a => a.status === 'ABSENT').length,
@@ -121,35 +120,93 @@ export const getStudentReportCard = async (req: AuthRequest, res: Response): Pro
       total: attendances.length
     };
 
-    // 5. Estructurar las calificaciones por materia y período
-    const subjectGrades = subjects.map(subject => {
-      const subjectGradesList = grades.filter(g => g.subjectId === subject.id);
-      
-      const periods: Record<GradePeriod, any> = {
-        PRE_INFORME_1: null,
-        CUATRIMESTRE_1: null,
-        PRE_INFORME_2: null,
-        CUATRIMESTRE_2: null,
-        FINAL: null
-      };
+    // 4. Agrupar las materias e inasistencias por ciclo lectivo y curso
+    const academicHistory: Record<string, any> = {};
 
-      subjectGradesList.forEach(g => {
-        periods[g.period] = {
-          id: g.id,
-          concept: g.concept,
-          numericValue: g.numericValue,
-          comments: g.comments,
-          updatedAt: g.updatedAt
+    // Procesar las calificaciones que ya existen
+    grades.forEach(g => {
+      const year = g.schoolYear;
+      const courseId = g.subject.courseId;
+      const groupKey = `${year}_${courseId}`;
+
+      if (!academicHistory[groupKey]) {
+        academicHistory[groupKey] = {
+          schoolYear: year,
+          course: g.subject.course ? {
+            id: g.subject.course.id,
+            year: g.subject.course.year,
+            division: g.subject.course.division,
+            shift: g.subject.course.shift
+          } : null,
+          subjects: []
         };
-      });
+      }
 
-      return {
-        subjectId: subject.id,
-        subjectName: subject.name,
-        teacher: subject.teacher,
-        grades: periods
+      // Buscar si la materia ya está añadida en ese grupo
+      let subEntry = academicHistory[groupKey].subjects.find((s: any) => s.subjectId === g.subjectId);
+      if (!subEntry) {
+        subEntry = {
+          subjectId: g.subjectId,
+          subjectName: g.subject.name,
+          teacher: g.subject.teacher,
+          grades: {
+            PRE_INFORME_1: null,
+            CUATRIMESTRE_1: null,
+            PRE_INFORME_2: null,
+            CUATRIMESTRE_2: null,
+            FINAL: null
+          }
+        };
+        academicHistory[groupKey].subjects.push(subEntry);
+      }
+
+      // Asignar la nota
+      subEntry.grades[g.period] = {
+        id: g.id,
+        concept: g.concept,
+        numericValue: g.numericValue,
+        comments: g.comments,
+        updatedAt: g.updatedAt
       };
     });
+
+    // 5. Asegurar que el curso actual esté presente
+    if (student.courseId) {
+      const currentYear = new Date().getFullYear();
+      const currentGroupKey = `${currentYear}_${student.courseId}`;
+
+      if (!academicHistory[currentGroupKey]) {
+        const currentSubjects = await prisma.subject.findMany({
+          where: { courseId: student.courseId },
+          include: {
+            teacher: { select: { id: true, name: true, lastName: true } }
+          },
+          orderBy: { name: 'asc' }
+        });
+
+        academicHistory[currentGroupKey] = {
+          schoolYear: currentYear,
+          course: student.course ? {
+            id: student.course.id,
+            year: student.course.year,
+            division: student.course.division,
+            shift: student.course.shift
+          } : null,
+          subjects: currentSubjects.map(sub => ({
+            subjectId: sub.id,
+            subjectName: sub.name,
+            teacher: sub.teacher,
+            grades: {
+              PRE_INFORME_1: null,
+              CUATRIMESTRE_1: null,
+              PRE_INFORME_2: null,
+              CUATRIMESTRE_2: null,
+              FINAL: null
+            }
+          }))
+        };
+      }
+    }
 
     res.json({
       student: {
@@ -159,13 +216,13 @@ export const getStudentReportCard = async (req: AuthRequest, res: Response): Pro
         dni: student.dni,
         birthDate: student.birthDate
       },
-      course: student.course ? {
+      currentCourse: student.course ? {
         id: student.course.id,
         year: student.course.year,
         division: student.course.division,
         shift: student.course.shift
       } : null,
-      subjects: subjectGrades,
+      academicHistory,
       attendanceSummary,
       attendanceRecords: attendances.map(a => ({
         id: a.id,

@@ -74,7 +74,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-hover) 100%);
+  background-color: var(--brand-primary);
   color: #ffffff;
   border: none;
   padding: 11px 18px;
@@ -84,16 +84,17 @@
   font-size: 0.925rem;
   cursor: pointer;
   transition: all var(--transition-fast);
-  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
 }
 
 .createButton:hover {
-  box-shadow: 0 6px 15px rgba(99, 102, 241, 0.3);
-  transform: translateY(-1px);
+  background-color: var(--brand-hover);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  transform: translateY(-0.5px);
 }
 
 .createButton:active {
-  transform: translateY(1px);
+  transform: translateY(0.5px);
 }
 
 /* Modern Tables */
@@ -167,7 +168,7 @@
 
 .editBtn:hover {
   color: var(--brand-primary);
-  border-color: rgba(99, 102, 241, 0.3);
+  border-color: rgba(37, 99, 235, 0.3);
   background-color: var(--brand-light);
 }
 
@@ -324,7 +325,7 @@
 }
 
 .saveButton {
-  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-hover) 100%);
+  background-color: var(--brand-primary);
   border: none;
   color: #ffffff;
   padding: 10px 24px;
@@ -340,7 +341,8 @@
 }
 
 .saveButton:hover:not(:disabled) {
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+  background-color: var(--brand-hover);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
 }
 
 .saveButton:disabled {
@@ -399,7 +401,7 @@
 }
 
 .confirmDeleteBtn {
-  background: linear-gradient(135deg, var(--accent-rose) 0%, #e11d48 100%);
+  background-color: var(--accent-rose);
   border: none;
   color: #ffffff;
   padding: 10px 24px;
@@ -412,7 +414,8 @@
 }
 
 .confirmDeleteBtn:hover {
-  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.25);
+  background-color: #be123c;
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.2);
 }
 
 /* Tab Headers for Academic management split */

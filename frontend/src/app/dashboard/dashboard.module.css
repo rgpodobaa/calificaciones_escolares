@@ -63,33 +63,33 @@
 }
 
 .roleBadge.directivo {
-  background-color: rgba(99, 102, 241, 0.1);
+  background-color: var(--brand-light);
   color: var(--brand-primary);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(37, 99, 235, 0.15);
 }
 
 .roleBadge.docente {
-  background-color: rgba(16, 185, 129, 0.1);
+  background-color: rgba(16, 185, 129, 0.05);
   color: var(--accent-emerald);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.15);
 }
 
 .roleBadge.secretario {
-  background-color: rgba(6, 182, 212, 0.1);
+  background-color: rgba(6, 182, 212, 0.05);
   color: var(--accent-cyan);
-  border: 1px solid rgba(6, 182, 212, 0.2);
+  border: 1px solid rgba(6, 182, 212, 0.15);
 }
 
 .roleBadge.preceptor {
-  background-color: rgba(245, 158, 11, 0.1);
+  background-color: rgba(245, 158, 11, 0.05);
   color: var(--accent-amber);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.15);
 }
 
 .roleBadge.familia {
-  background-color: rgba(244, 63, 94, 0.1);
+  background-color: rgba(244, 63, 94, 0.05);
   color: var(--accent-rose);
-  border: 1px solid rgba(244, 63, 94, 0.2);
+  border: 1px solid rgba(244, 63, 94, 0.15);
 }
 
 /* Logout Button */

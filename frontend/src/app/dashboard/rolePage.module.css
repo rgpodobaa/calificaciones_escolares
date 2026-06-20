@@ -64,8 +64,8 @@
 }
 
 .card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
   border-color: var(--brand-primary);
 }
 
@@ -104,11 +104,11 @@
 }
 
 /* Colors for Card Icons per role/accent */
-.accentIndigo { background: linear-gradient(135deg, #6366f1, #4f46e5); }
-.accentEmerald { background: linear-gradient(135deg, #10b981, #059669); }
-.accentCyan { background: linear-gradient(135deg, #06b6d4, #0891b2); }
-.accentAmber { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.accentRose { background: linear-gradient(135deg, #f43f5e, #e11d48); }
+.accentIndigo { background-color: var(--brand-primary); }
+.accentEmerald { background-color: var(--accent-emerald); }
+.accentCyan { background-color: var(--accent-cyan); }
+.accentAmber { background-color: var(--accent-amber); }
+.accentRose { background-color: var(--accent-rose); }
 
 /* Quick Actions List */
 .quickActionsSection {

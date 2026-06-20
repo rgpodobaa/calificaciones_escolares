@@ -81,7 +81,7 @@ export const getCourseStudents = async (req: AuthRequest, res: Response): Promis
     }
 
     const students = await prisma.student.findMany({
-      where: { courseId },
+      where: { courseId, active: true },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }]
     });
 
@@ -126,7 +126,7 @@ export const getCourseAttendance = async (req: AuthRequest, res: Response): Prom
 
     // Obtener los alumnos del curso
     const students = await prisma.student.findMany({
-      where: { courseId },
+      where: { courseId, active: true },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }]
     });
 
