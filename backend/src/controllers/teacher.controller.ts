@@ -250,12 +250,14 @@ export const upsertGrade = async (req: AuthRequest, res: Response): Promise<void
       concept = expectedConcept;
     } 
     else if (period === GradePeriod.FINAL) {
-      // Nota Final: numérica (1 a 10). Concepto nulo.
-      if (numericValue !== undefined && numericValue !== null) {
-        if (numericValue < 1 || numericValue > 10) {
-          res.status(400).json({ message: 'La nota final debe estar entre 1 y 10.' });
-          return;
-        }
+      // Nota Final: numérica obligatoria (1 a 10). Concepto nulo.
+      if (numericValue === undefined || numericValue === null) {
+        res.status(400).json({ message: 'La nota final requiere un valor numérico obligatorio.' });
+        return;
+      }
+      if (numericValue < 1 || numericValue > 10) {
+        res.status(400).json({ message: 'La nota final debe estar entre 1 y 10.' });
+        return;
       }
       concept = null; // Sin concepto
     }

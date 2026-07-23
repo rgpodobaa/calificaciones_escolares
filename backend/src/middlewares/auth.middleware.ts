@@ -9,6 +9,10 @@ export interface AuthRequest extends Request {
   };
 }
 
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️ ADVERTENCIA: JWT_SECRET no está configurado en las variables de entorno. Usando clave por defecto en modo desarrollo.');
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || 'secret_key_default';
 
 export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction): void => {

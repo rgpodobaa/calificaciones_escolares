@@ -26,7 +26,11 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     });
 
     if (existingUser) {
-      res.status(400).json({ message: 'El email o DNI ya están registrados.' });
+      if (!existingUser.active) {
+        res.status(400).json({ message: 'Existe un usuario inactivo registrado con ese email o DNI. Puedes reactivarlo desde el panel.' });
+        return;
+      }
+      res.status(400).json({ message: 'El email o DNI ya están registrados para otro usuario.' });
       return;
     }
 
@@ -99,6 +103,22 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     if (!user) {
       res.status(404).json({ message: 'Usuario no encontrado.' });
       return;
+    }
+
+    if (email || dni) {
+      const duplicateUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            email ? { email } : {},
+            dni ? { dni } : {}
+          ],
+          NOT: { id }
+        }
+      });
+      if (duplicateUser) {
+        res.status(400).json({ message: 'El email o DNI ingresado ya pertenecen a otro usuario registrado.' });
+        return;
+      }
     }
 
     const data: any = {
@@ -408,6 +428,10 @@ export const createStudent = async (req: Request, res: Response): Promise<void> 
 
     const existingStudent = await prisma.student.findUnique({ where: { dni } });
     if (existingStudent) {
+      if (!existingStudent.active) {
+        res.status(400).json({ message: 'Existe un alumno inactivo registrado con este DNI. Puedes reactivarlo desde el panel.' });
+        return;
+      }
       res.status(400).json({ message: 'El DNI ya se encuentra registrado para otro alumno.' });
       return;
     }
@@ -439,6 +463,19 @@ export const updateStudent = async (req: Request, res: Response): Promise<void> 
     if (!student) {
       res.status(404).json({ message: 'Alumno no encontrado.' });
       return;
+    }
+
+    if (dni) {
+      const duplicateStudent = await prisma.student.findFirst({
+        where: {
+          dni,
+          NOT: { id }
+        }
+      });
+      if (duplicateStudent) {
+        res.status(400).json({ message: 'El DNI ingresado ya pertenece a otro alumno registrado.' });
+        return;
+      }
     }
 
     const oldCourseId = student.courseId;
@@ -535,13 +572,16 @@ export const promoteStudents = async (req: Request, res: Response): Promise<void
     // Obtener todos los cursos
     const courses = await prisma.course.findMany();
     const updates = [];
+    let promotedCount = 0;
+    let graduatedCount = 0;
+    let repeatersCount = 0;
 
     for (const student of students) {
       const currentCourse = student.course;
       if (!currentCourse) continue;
 
       if (repeatIds.includes(student.id)) {
-        // Repite: se queda en el mismo curso
+        repeatersCount++;
         continue;
       }
 
@@ -551,6 +591,12 @@ export const promoteStudents = async (req: Request, res: Response): Promise<void
              c.division === currentCourse.division &&
              c.shift === currentCourse.shift
       );
+
+      if (nextCourse) {
+        promotedCount++;
+      } else {
+        graduatedCount++;
+      }
 
       updates.push(
         prisma.student.update({
@@ -567,9 +613,11 @@ export const promoteStudents = async (req: Request, res: Response): Promise<void
     }
 
     res.json({
-      message: 'Proceso de promoción finalizado.',
+      message: 'Proceso de promoción finalizado exitosamente.',
       totalProcessed: students.length,
-      promotedCount: updates.length
+      promotedCount,
+      graduatedCount,
+      repeatersCount
     });
   } catch (error) {
     console.error(error);

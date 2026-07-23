@@ -57,8 +57,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (res.ok) {
             const data = await res.json();
-            // Si el backend responde exitoso, el token es válido.
-            // Actualizamos el usuario con los últimos datos si es necesario (el endpoint de /me devuelve { user: { id, role } })
             if (data.user) {
               const updatedUser = {
                 ...parsedUser,
@@ -68,14 +66,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setUser(updatedUser);
               localStorage.setItem('user', JSON.stringify(updatedUser));
             }
-          } else {
-            // Token expirado o inválido
+          } else if (res.status === 401 || res.status === 403) {
+            // Token expirado o inválido confirmado por el servidor
             logout();
           }
         }
       } catch (err) {
-        console.error('Error restaurando la sesión:', err);
-        logout();
+        console.warn('No se pudo verificar la sesión con el servidor (posible problema de red). Se mantendrá la sesión local:', err);
       } finally {
         setLoading(false);
       }
