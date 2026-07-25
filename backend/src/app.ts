@@ -6,7 +6,6 @@ import preceptorRoutes from './routes/preceptor.routes';
 import teacherRoutes from './routes/teacher.routes';
 import communicationRoutes from './routes/communication.routes';
 import studentRoutes from './routes/student.routes';
-import familyRoutes from './routes/family.routes';
 
 const app = express();
 
@@ -20,6 +19,5 @@ app.use('/api/preceptor', preceptorRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/communications', communicationRoutes);
 app.use('/api/students', studentRoutes);
-app.use('/api/family', familyRoutes);
 
 export default app;

@@ -165,59 +165,59 @@ async function main() {
   });
   console.log('✓ Materias Matemática y Ed Fisica creadas para ambos cursos.');
 
-  // 6. Familias
-  const familia1 = await prisma.user.upsert({
-    where: { email: 'familia1@colegio.edu.ar' },
+  // 6. Cuentas de Usuario para Alumnos
+  const userAlumno1 = await prisma.user.upsert({
+    where: { email: 'alumno1@colegio.edu.ar' },
     update: {},
     create: {
-      email: 'familia1@colegio.edu.ar',
+      email: 'alumno1@colegio.edu.ar',
       password: userPasswordHash,
-      name: 'Familia',
+      name: 'Juan',
       lastName: 'Pérez',
-      dni: '33333331',
-      role: Role.FAMILIA,
+      dni: '44444441',
+      role: Role.ALUMNO,
     }
   });
 
-  const familia2 = await prisma.user.upsert({
-    where: { email: 'familia2@colegio.edu.ar' },
+  const userAlumno2 = await prisma.user.upsert({
+    where: { email: 'alumno2@colegio.edu.ar' },
     update: {},
     create: {
-      email: 'familia2@colegio.edu.ar',
+      email: 'alumno2@colegio.edu.ar',
       password: userPasswordHash,
-      name: 'Familia',
+      name: 'Ana',
       lastName: 'González',
-      dni: '33333332',
-      role: Role.FAMILIA,
+      dni: '44444442',
+      role: Role.ALUMNO,
     }
   });
-  console.log('✓ 2 Familias creadas.');
+  console.log('✓ 2 Cuentas de Alumnos creadas.');
 
-  // 7. Alumnos inscritos en 1°A
+  // 7. Alumnos inscritos en 1°A vinculados a sus usuarios
   const alumno1 = await prisma.student.upsert({
     where: { dni: '44444441' },
-    update: { courseId: curso1A.id, familyId: familia1.id },
+    update: { courseId: curso1A.id, userId: userAlumno1.id },
     create: {
       firstName: 'Juan',
       lastName: 'Pérez',
       dni: '44444441',
       courseId: curso1A.id,
-      familyId: familia1.id
+      userId: userAlumno1.id
     }
   });
 
   const alumno2 = await prisma.student.upsert({
     where: { dni: '44444442' },
-    update: { courseId: curso1A.id, familyId: familia2.id },
+    update: { courseId: curso1A.id, userId: userAlumno2.id },
     create: {
       firstName: 'Ana',
       lastName: 'González',
       dni: '44444442',
       courseId: curso1A.id,
-      familyId: familia2.id
+      userId: userAlumno2.id
     }
   });
-  console.log('✓ 2 Alumnos creados e inscritos en 1º A.');
+  console.log('✓ 2 Legajos de Alumnos creados e inscritos en 1º A.');
 
   console.log('Seeder de pruebas finalizado exitosamente.');
 }

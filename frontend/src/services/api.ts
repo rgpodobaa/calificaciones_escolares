@@ -35,7 +35,7 @@ async function request(path: string, method: string, body?: any) {
   return data;
 }
 
-export const apiGet = (path: string) => request(path, 'GET');
-export const apiPost = (path: string, body: any) => request(path, 'POST', body);
-export const apiPut = (path: string, body: any) => request(path, 'PUT', body);
-export const apiDelete = (path: string) => request(path, 'DELETE');
+export const apiGet = <T = any>(path: string): Promise<T> => request(path, 'GET');
+export const apiPost = <T = any>(path: string, body?: any): Promise<T> => request(path, 'POST', body);
+export const apiPut = <T = any>(path: string, body?: any): Promise<T> => request(path, 'PUT', body);
+export const apiDelete = <T = any>(path: string): Promise<T> => request(path, 'DELETE');

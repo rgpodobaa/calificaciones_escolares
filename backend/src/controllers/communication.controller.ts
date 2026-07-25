@@ -6,7 +6,7 @@ import { Role } from '@prisma/client';
 // 1. Crear un comunicado (Solo Directivo, Secretario y Preceptor)
 export const createCommunication = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { title, content, targetCourseId, targetFamilyId } = req.body;
+    const { title, content, targetCourseId, targetStudentId } = req.body;
     const userId = req.user?.id;
     const userRole = req.user?.role;
 
@@ -35,7 +35,7 @@ export const createCommunication = async (req: AuthRequest, res: Response): Prom
         content,
         authorId: userId,
         targetCourseId: targetCourseId || null,
-        targetFamilyId: targetFamilyId || null
+        targetStudentId: targetStudentId || null
       },
       include: {
         author: { select: { id: true, name: true, lastName: true, role: true } },
@@ -89,7 +89,7 @@ export const getCommunications = async (req: AuthRequest, res: Response): Promis
           OR: [
             { authorId: userId },
             { targetCourseId: { in: courseIds } },
-            { AND: [{ targetCourseId: null }, { targetFamilyId: null }] }
+            { AND: [{ targetCourseId: null }, { targetStudentId: null }] }
           ]
         },
         include: {
@@ -112,7 +112,7 @@ export const getCommunications = async (req: AuthRequest, res: Response): Promis
           OR: [
             { authorId: userId },
             { targetCourseId: { in: courseIds } },
-            { AND: [{ targetCourseId: null }, { targetFamilyId: null }] }
+            { AND: [{ targetCourseId: null }, { targetStudentId: null }] }
           ]
         },
         include: {
@@ -122,22 +122,22 @@ export const getCommunications = async (req: AuthRequest, res: Response): Promis
         orderBy: { createdAt: 'desc' }
       });
     } 
-    else if (userRole === Role.FAMILIA) {
-      // Familia: ve comunicados generales, directos a su familia, o dirigidos a los cursos de sus hijos
-      const students = await prisma.student.findMany({
-        where: { familyId: userId },
-        select: { courseId: true }
+    else if (userRole === Role.ALUMNO) {
+      // Alumno: ve comunicados generales, directos a su usuario, o dirigidos a su curso
+      const student = await prisma.student.findUnique({
+        where: { userId },
+        select: { id: true, courseId: true }
       });
-      const familyCourseIds = students
-        .map(s => s.courseId)
-        .filter((c): c is string => c !== null);
+
+      const studentCourseId = student?.courseId || null;
+      const studentId = student?.id || null;
 
       communications = await prisma.communication.findMany({
         where: {
           OR: [
-            { AND: [{ targetCourseId: null }, { targetFamilyId: null }] },
-            { targetFamilyId: userId },
-            { targetCourseId: { in: familyCourseIds } }
+            { AND: [{ targetCourseId: null }, { targetStudentId: null }] },
+            { targetStudentId: studentId },
+            ...(studentCourseId ? [{ targetCourseId: studentCourseId }] : [])
           ]
         },
         include: {

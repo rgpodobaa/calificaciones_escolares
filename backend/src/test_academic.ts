@@ -1,5 +1,5 @@
 import { prisma } from './config/db';
-import { Role, GradePeriod, ConceptGrade, AttendanceStatus } from '@prisma/client';
+import { Role, GradePeriod, ConceptGrade, AttendanceStatus, Shift } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 // Simple assertion helper
@@ -40,7 +40,7 @@ async function runTests() {
         in: [
           'preceptor_test@colegio.edu.ar',
           'docente_test@colegio.edu.ar',
-          'familia_test@colegio.edu.ar'
+          'alumno_test@colegio.edu.ar'
         ]
       }
     }
@@ -74,10 +74,10 @@ async function runTests() {
 
   const familia = await prisma.user.create({
     data: {
-      email: 'familia_test@colegio.edu.ar',
+      email: 'alumno_test@colegio.edu.ar',
       password: passwordHash,
-      role: Role.FAMILIA,
-      name: 'Familia',
+      role: Role.ALUMNO,
+      name: 'Juan',
       lastName: 'Pérez',
       dni: '99000003'
     }
@@ -89,7 +89,7 @@ async function runTests() {
     data: {
       year: 1,
       division: 'A',
-      shift: 'MANANA',
+      shift: Shift.MANANA,
       preceptorId: preceptor.id
     }
   });
@@ -102,8 +102,8 @@ async function runTests() {
     }
   });
 
-  // 4. Crear Alumno
-  console.log('Creando estudiante...');
+  // 4. Crear Alumno y relacionar
+  console.log('Creando alumno...');
   const alumno = await prisma.student.create({
     data: {
       firstName: 'Juan',
@@ -111,7 +111,7 @@ async function runTests() {
       dni: '55666777',
       birthDate: new Date('2012-04-15'),
       courseId: curso.id,
-      familyId: familia.id
+      userId: familia.id
     }
   });
 
@@ -229,7 +229,7 @@ async function runTests() {
   // ==========================================
   console.log('Prueba 3: Consultar Boletín...');
   const reqReportCard: any = {
-    user: { id: familia.id, role: Role.FAMILIA },
+    user: { id: familia.id, role: Role.ALUMNO },
     params: { studentId: alumno.id }
   };
   const resReportCard = makeMockResponse();
@@ -272,14 +272,14 @@ async function runTests() {
   // 4c. Crear comunicado dirigido a otra familia (que no es la de Juan)
   const reqCommOtraFam: any = {
     user: { id: preceptor.id, role: Role.PRECEPTOR },
-    body: { title: 'Otra Familia', content: 'Mensaje privado', targetFamilyId: 'some-other-id' }
+    body: { title: 'Otro Alumno', content: 'Mensaje privado', targetStudentId: 'some-other-id' }
   };
   const resCommOtraFam = makeMockResponse();
   await communicationController.createCommunication(reqCommOtraFam, resCommOtraFam);
 
   // 4d. Obtener comunicados como Familia (debe ver General y Curso 1A, pero NO el de otra familia)
   const reqGetComm: any = {
-    user: { id: familia.id, role: Role.FAMILIA }
+    user: { id: familia.id, role: Role.ALUMNO }
   };
   const resGetComm = makeMockResponse();
   await communicationController.getCommunications(reqGetComm, resGetComm);
@@ -491,7 +491,7 @@ async function runTests() {
 
   // Consultar boletín de Juan y verificar agrupación
   const reqBoletinHist: any = {
-    user: { id: familia.id, role: Role.FAMILIA },
+    user: { id: familia.id, role: Role.ALUMNO },
     params: { studentId: alumno.id }
   };
   const resBoletinHist = makeMockResponse();

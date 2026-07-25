@@ -25,16 +25,16 @@ interface Student {
   dni: string;
   birthDate: string | null;
   courseId: string | null;
-  familyId: string | null;
+  userId: string | null;
   course: Course | null;
-  family: Family | null;
+  user: Family | null;
   active: boolean;
 }
 
 export default function StudentsABM() {
   const [students, setStudents] = useState<Student[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [families, setFamilies] = useState<Family[]>([]);
+  const [studentUsers, setStudentUsers] = useState<Family[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +57,10 @@ export default function StudentsABM() {
     dni: '',
     birthDate: '',
     courseId: '',
-    familyId: '',
+    userId: '',
+    createAccount: true,
+    email: '',
+    password: '',
     active: true
   });
 
@@ -70,15 +73,15 @@ export default function StudentsABM() {
     setError(null);
     try {
       const studentQuery = showInactive ? '?includeInactive=true' : '';
-      const [studentsData, coursesData, familiesData] = await Promise.all([
+      const [studentsData, coursesData, usersData] = await Promise.all([
         apiGet(`/admin/students${studentQuery}`),
         apiGet('/admin/courses'),
-        apiGet('/admin/users?role=FAMILIA')
+        apiGet('/admin/users?role=ALUMNO')
       ]);
 
       setStudents(studentsData);
       setCourses(coursesData);
-      setFamilies(familiesData);
+      setStudentUsers(usersData);
     } catch (err: any) {
       setError(err.message || 'Error al cargar los alumnos.');
     } finally {
@@ -99,7 +102,10 @@ export default function StudentsABM() {
       dni: '',
       birthDate: '',
       courseId: courses[0]?.id || '',
-      familyId: '',
+      userId: '',
+      createAccount: true,
+      email: '',
+      password: '',
       active: true
     });
     setFormError(null);
@@ -120,7 +126,10 @@ export default function StudentsABM() {
       dni: student.dni,
       birthDate: formattedDate,
       courseId: student.courseId || '',
-      familyId: student.familyId || '',
+      userId: student.userId || '',
+      createAccount: false,
+      email: '',
+      password: '',
       active: student.active
     });
     setFormError(null);
@@ -145,15 +154,21 @@ export default function StudentsABM() {
 
     setFormLoading(true);
     try {
-      const payload = {
+      const payload: any = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         dni: formData.dni,
         birthDate: formData.birthDate || null,
         courseId: formData.courseId || null,
-        familyId: formData.familyId || null,
+        userId: formData.userId || null,
         active: formData.active
       };
+
+      if (!selectedStudent && formData.createAccount) {
+        payload.createAccount = true;
+        payload.email = formData.email.trim() || undefined;
+        payload.password = formData.password.trim() || undefined;
+      }
 
       if (selectedStudent) {
         await apiPut(`/admin/students/${selectedStudent.id}`, payload);
@@ -282,7 +297,7 @@ export default function StudentsABM() {
                 <th>Estudiante (DNI)</th>
                 <th>Fecha Nacimiento</th>
                 <th>Curso</th>
-                <th>Tutor Familiar</th>
+                <th>Cuenta de Alumno (Usuario)</th>
                 <th>Estado</th>
                 <th>Acciones</th>
               </tr>
@@ -312,10 +327,10 @@ export default function StudentsABM() {
                     )}
                   </td>
                   <td>
-                    {student.family ? (
+                    {student.user ? (
                       <div>
-                        <div>{student.family.lastName}, {student.family.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{student.family.email}</div>
+                        <div>{student.user.lastName}, {student.user.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{student.user.email}</div>
                       </div>
                     ) : (
                       <em style={{ color: 'var(--text-muted)' }}>Sin vincular</em>
@@ -436,22 +451,75 @@ export default function StudentsABM() {
                   </select>
                 </div>
                 
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Tutor Familiar (Usuario)</label>
-                  <select
-                    className={styles.formSelect}
-                    value={formData.familyId}
-                    onChange={(e) => setFormData({ ...formData, familyId: e.target.value })}
-                  >
-                    <option value="">-- Sin tutor familiar --</option>
-                    {families.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.lastName}, {f.name} ({f.email})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {selectedStudent ? (
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Cuenta de Alumno (Usuario)</label>
+                    <select
+                      className={styles.formSelect}
+                      value={formData.userId}
+                      onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+                    >
+                      <option value="">-- Sin cuenta asignada --</option>
+                      {studentUsers.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.lastName}, {u.name} ({u.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className={styles.formGroup} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={formData.createAccount}
+                        onChange={(e) => setFormData({ ...formData, createAccount: e.target.checked })}
+                        style={{ width: '18px', height: '18px', accentColor: 'var(--brand-primary)' }}
+                      />
+                      <span style={{ fontWeight: 600, color: 'var(--brand-primary)' }}>Crear cuenta de acceso al portal</span>
+                    </label>
+                  </div>
+                )}
               </div>
+
+              {!selectedStudent && formData.createAccount && (
+                <div style={{
+                  backgroundColor: 'var(--bg-tertiary)',
+                  padding: '16px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  marginTop: '8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px'
+                }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                    🔑 Credenciales de Acceso al Portal
+                  </div>
+                  <div className={styles.formGrid}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Correo Electrónico (Email)</label>
+                      <input
+                        className={styles.formInput}
+                        type="email"
+                        placeholder={formData.dni ? `${formData.dni}@alumno.colegio.edu.ar` : 'ejemplo@colegio.edu.ar'}
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Contraseña Inicial</label>
+                      <input
+                        className={styles.formInput}
+                        type="text"
+                        placeholder={formData.dni ? `Por defecto: DNI (${formData.dni})` : 'Por defecto: DNI'}
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {selectedStudent && (
                 <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>

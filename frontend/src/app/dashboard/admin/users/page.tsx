@@ -183,8 +183,8 @@ export default function UsersABM() {
       {/* Page Title */}
       <div className={styles.pageHeader}>
         <div className={styles.titleArea}>
-          <h1>Gestión de Usuarios</h1>
-          <p>Administra los perfiles de directivos, secretarios, preceptores, docentes y familias.</p>
+          <h1>Gestión del Personal y Usuarios</h1>
+          <p>Administra las cuentas del personal de la institución (Directivos, Secretarios, Preceptores y Docentes).</p>
         </div>
       </div>
 
@@ -208,7 +208,7 @@ export default function UsersABM() {
             <option value="SECRETARIO">Secretarios</option>
             <option value="PRECEPTOR">Preceptores</option>
             <option value="DOCENTE">Docentes</option>
-            <option value="FAMILIA">Familias</option>
+            <option value="ALUMNO">Alumnos</option>
           </select>
           
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-secondary)', marginLeft: '12px' }}>
@@ -419,8 +419,10 @@ export default function UsersABM() {
                     <option value="SECRETARIO">Secretario</option>
                     <option value="PRECEPTOR">Preceptor</option>
                     <option value="DOCENTE">Docente</option>
-                    <option value="FAMILIA">Familia</option>
                   </select>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '6px' }}>
+                    💡 <em>Para matricular estudiantes y crear sus accesos al portal, utiliza la sección dedicada <strong>Alumnos</strong>.</em>
+                  </div>
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>

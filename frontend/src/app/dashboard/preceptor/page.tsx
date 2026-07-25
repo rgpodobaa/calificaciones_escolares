@@ -224,7 +224,7 @@ export default function PreceptorDashboard() {
         <div className={styles.welcomeBanner}>
           <h1>Bienvenido/a, {user?.name || 'Preceptor'}</h1>
           <p>
-            Gestiona la asistencia diaria de tus divisiones asignadas y emite avisos oficiales directamente a las familias de los estudiantes.
+            Gestiona la asistencia diaria de tus divisiones asignadas y emite avisos oficiales directamente a los estudiantes.
           </p>
         </div>
 

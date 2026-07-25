@@ -3,33 +3,37 @@ import { prisma } from '../config/db';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { Role, GradePeriod } from '@prisma/client';
 
-// 1. Obtener los alumnos asociados al usuario FAMILIA logueado
-export const getFamilyStudents = async (req: AuthRequest, res: Response): Promise<void> => {
+// 1. Obtener el legajo del estudiante asociado al usuario ALUMNO logueado
+export const getStudentMe = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
     const userRole = req.user?.role;
 
-    if (!userId || userRole !== Role.FAMILIA) {
-      res.status(403).json({ message: 'Acceso denegado. Solo accesible para familias.' });
+    if (!userId || userRole !== Role.ALUMNO) {
+      res.status(403).json({ message: 'Acceso denegado. Solo accesible para alumnos.' });
       return;
     }
 
-    const students = await prisma.student.findMany({
-      where: { familyId: userId },
+    const student = await prisma.student.findUnique({
+      where: { userId },
       include: {
         course: {
           include: {
             preceptor: { select: { id: true, name: true, lastName: true, email: true } }
           }
         }
-      },
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }]
+      }
     });
 
-    res.json(students);
+    if (!student) {
+      res.status(404).json({ message: 'No se encontró el legajo escolar asociado a este usuario.' });
+      return;
+    }
+
+    res.json(student);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error al obtener los alumnos de la familia.' });
+    res.status(500).json({ message: 'Error al obtener el perfil del alumno.' });
   }
 };
 
@@ -59,9 +63,9 @@ export const getStudentReportCard = async (req: AuthRequest, res: Response): Pro
     // ==========================================
     // VALIDACIÓN DE SEGURIDAD POR ROL
     // ==========================================
-    if (userRole === Role.FAMILIA) {
-      // Familias solo pueden ver a sus propios hijos
-      if (student.familyId !== userId) {
+    if (userRole === Role.ALUMNO) {
+      // Los alumnos solo pueden ver su propio boletín
+      if (student.userId !== userId) {
         res.status(403).json({ message: 'No tienes acceso al boletín de este alumno.' });
         return;
       }

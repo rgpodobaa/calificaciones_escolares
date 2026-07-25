@@ -400,7 +400,7 @@ export const getStudents = async (req: Request, res: Response): Promise<void> =>
       where: whereClause,
       include: {
         course: true,
-        family: {
+        user: {
           select: {
             id: true,
             name: true,
@@ -419,7 +419,17 @@ export const getStudents = async (req: Request, res: Response): Promise<void> =>
 
 export const createStudent = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { firstName, lastName, dni, birthDate, courseId, familyId } = req.body;
+    const { 
+      firstName, 
+      lastName, 
+      dni, 
+      birthDate, 
+      courseId, 
+      userId, 
+      createAccount, 
+      email, 
+      password 
+    } = req.body;
 
     if (!firstName || !lastName || !dni) {
       res.status(400).json({ message: 'Nombre, apellido y DNI son obligatorios.' });
@@ -436,6 +446,66 @@ export const createStudent = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
+    let assignedUserId: string | null = userId || null;
+
+    // Si se solicita crear la cuenta de usuario automáticamente en el mismo paso
+    if (createAccount || email) {
+      const userEmail = email && email.trim() !== '' ? email.trim() : `${dni}@alumno.colegio.edu.ar`;
+      const userPassword = password && password.trim() !== '' ? password.trim() : dni;
+
+      // Verificar si ya existe un usuario registrado con ese email o DNI
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          OR: [{ email: userEmail }, { dni }]
+        }
+      });
+
+      if (existingUser) {
+        res.status(400).json({ message: `Ya existe una cuenta de usuario con el email (${userEmail}) o DNI (${dni}).` });
+        return;
+      }
+
+      const hashedPassword = await bcrypt.hash(userPassword, 10);
+
+      // Transacción atómica: Crear User y Student juntos
+      const result = await prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            email: userEmail,
+            password: hashedPassword,
+            role: Role.ALUMNO,
+            name: firstName,
+            lastName,
+            dni
+          }
+        });
+
+        const newStudent = await tx.student.create({
+          data: {
+            firstName,
+            lastName,
+            dni,
+            birthDate: birthDate ? new Date(birthDate) : null,
+            courseId: courseId || null,
+            userId: newUser.id
+          },
+          include: {
+            course: true,
+            user: { select: { id: true, name: true, lastName: true, email: true } }
+          }
+        });
+
+        return newStudent;
+      });
+
+      res.status(201).json({ 
+        message: 'Alumno y cuenta de acceso creados exitosamente.', 
+        student: result 
+      });
+      return;
+    }
+
+    // Creación tradicional si no se marcó crear cuenta
     const student = await prisma.student.create({
       data: {
         firstName,
@@ -443,7 +513,11 @@ export const createStudent = async (req: Request, res: Response): Promise<void> 
         dni,
         birthDate: birthDate ? new Date(birthDate) : null,
         courseId: courseId || null,
-        familyId: familyId || null
+        userId: assignedUserId
+      },
+      include: {
+        course: true,
+        user: { select: { id: true, name: true, lastName: true, email: true } }
       }
     });
 
@@ -457,7 +531,7 @@ export const createStudent = async (req: Request, res: Response): Promise<void> 
 export const updateStudent = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
-    const { firstName, lastName, dni, birthDate, courseId, familyId, active } = req.body;
+    const { firstName, lastName, dni, birthDate, courseId, userId, active } = req.body;
 
     const student = await prisma.student.findUnique({ where: { id } });
     if (!student) {
@@ -520,7 +594,7 @@ export const updateStudent = async (req: Request, res: Response): Promise<void> 
         dni,
         birthDate: birthDate ? new Date(birthDate) : undefined,
         courseId: courseId !== undefined ? courseId : undefined,
-        familyId: familyId !== undefined ? familyId : undefined,
+        userId: userId !== undefined ? userId : undefined,
         active: active !== undefined ? active : undefined
       }
     });

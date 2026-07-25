@@ -11,7 +11,7 @@ enum Role {
   SECRETARIO
   PRECEPTOR
   DOCENTE
-  FAMILIA
+  ALUMNO
 }
 
 enum Shift {
@@ -56,7 +56,7 @@ model User {
   // Relaciones
   preceptedCourses Course[]      @relation("PreceptorCourses")
   teachingSubjects Subject[]     @relation("TeacherSubjects")
-  familyStudents   Student[]     @relation("FamilyStudents")
+  student          Student?      @relation("UserStudent")
   gradesGiven      Grade[]       @relation("TeacherGrades")
   communications   Communication[] @relation("CommunicationAuthor")
 }
@@ -93,8 +93,8 @@ model Student {
   birthDate      DateTime?
   courseId       String?
   course         Course?         @relation(fields: [courseId], references: [id])
-  familyId       String?
-  family         User?           @relation("FamilyStudents", fields: [familyId], references: [id])
+  userId         String?         @unique
+  user           User?           @relation("UserStudent", fields: [userId], references: [id])
   grades         Grade[]
   attendances    Attendance[]
   active         Boolean         @default(true)
@@ -144,7 +144,7 @@ model Communication {
   // Opcionales para segmentar
   targetCourseId   String?
   targetCourse     Course?         @relation("CourseCommunications", fields: [targetCourseId], references: [id])
-  targetFamilyId   String?         // Solo si es un mensaje directo a una familia
+  targetStudentId  String?         // Solo si es un mensaje directo a un alumno particular
 
   createdAt        DateTime        @default(now())
 }
