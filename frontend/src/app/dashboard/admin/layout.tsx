@@ -32,7 +32,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
-            <span>Usuarios (ABM)</span>
+            <span>Personal</span>
           </Link>
 
           <Link 
@@ -44,7 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <circle cx="12" cy="10" r="2" />
               <path d="M10 14h4" />
             </svg>
-            <span>Alumnos (ABM)</span>
+            <span>Estudiantes</span>
           </Link>
 
           <Link 
@@ -55,7 +55,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <rect width="18" height="18" x="3" y="3" rx="2" />
               <path d="M3 9h18M9 21V9" />
             </svg>
-            <span>Cursos y Materias</span>
+            <span>Institucional</span>
           </Link>
 
           <Link 
@@ -66,7 +66,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
               <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>
             </svg>
-            <span>Cierre de Ciclo</span>
+            <span>Cierre</span>
           </Link>
 
           {/* Volver al Panel de Inicio según el Rol */}

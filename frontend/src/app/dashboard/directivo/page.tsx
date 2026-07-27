@@ -89,32 +89,84 @@ export default function DirectivoDashboard() {
           </p>
         </div>
 
-        {/* Dashboard Grid containing ABM shortcut & Communication form */}
-        <div className={styles.dashboardGrid}>
-          
-          {/* Option 1: Users ABM Card */}
-          <div className={styles.panelCard}>
-            <Link href="/dashboard/admin/users" className={styles.cardLink}>
-              <div className={styles.cardIcon}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              </div>
-              <h3 className={styles.cardTitle}>Administración de Usuarios (ABM)</h3>
-              <p className={styles.cardDesc}>
-                Alta, edición y eliminación de directivos, secretarios, preceptores, docentes y familias del establecimiento educativo.
-              </p>
-              <div className={styles.cardAction}>
-                <span>Ingresar al ABM de Usuarios</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </div>
-            </Link>
-          </div>
+        {/* Header de Sección de Accesos Rápidos */}
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Gestión Escolar</h2>
+          <p className={styles.sectionSubtitle}>Selecciona la tarea administrativa específica a realizar:</p>
+        </div>
 
-          {/* Option 2: Communications dispatcher (same as preceptor, but with access to all courses) */}
+        {/* 4 Accesos Rápidos Principales */}
+        <div className={styles.quickGrid}>
+          {/* 1. Personal */}
+          <Link href="/dashboard/admin/users" className={styles.quickCard}>
+            <div className={styles.quickIcon}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </div>
+            <h3 className={styles.quickTitle}>Personal</h3>
+            <p className={styles.quickDesc}>Alta y administración exclusiva de Directivos, Secretarios, Preceptores y Docentes.</p>
+            <div className={styles.quickAction}>
+              <span>Gestionar Personal</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </Link>
+
+          {/* 2. Estudiantes */}
+          <Link href="/dashboard/admin/students" className={styles.quickCard}>
+            <div className={styles.quickIcon}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                <circle cx="12" cy="10" r="2" />
+                <path d="M10 14h4" />
+              </svg>
+            </div>
+            <h3 className={styles.quickTitle}>Estudiantes</h3>
+            <p className={styles.quickDesc}>Matriculación de alumnos, legajos escolares y generación de cuentas para el portal.</p>
+            <div className={styles.quickAction}>
+              <span>Gestionar Estudiantes</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </Link>
+
+          {/* 3. Institucional */}
+          <Link href="/dashboard/admin/academic" className={styles.quickCard}>
+            <div className={styles.quickIcon}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" />
+                <path d="M3 9h18M9 21V9" />
+              </svg>
+            </div>
+            <h3 className={styles.quickTitle}>Institucional</h3>
+            <p className={styles.quickDesc}>Configuración de plan de estudios, turnos, divisiones y asignación de materias a docentes.</p>
+            <div className={styles.quickAction}>
+              <span>Gestionar Cursos</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </Link>
+
+          {/* 4. Cierre */}
+          <Link href="/dashboard/admin/promote" className={styles.quickCard}>
+            <div className={styles.quickIcon}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>
+              </svg>
+            </div>
+            <h3 className={styles.quickTitle}>Cierre</h3>
+            <p className={styles.quickDesc}>Cierre anual de ciclo lectivo, promoción masiva de alumnos aprobados y graduación.</p>
+            <div className={styles.quickAction}>
+              <span>Procesar Cierre</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </Link>
+        </div>
+
+        {/* Formulario de Comunicados Institucionales */}
+        <div className={styles.dashboardGrid}>
           <div className={styles.panelCard}>
             <h3 className={styles.cardTitle}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--brand-primary)', marginRight: '4px' }}>
@@ -170,7 +222,7 @@ export default function DirectivoDashboard() {
                 <textarea
                   id="commContent"
                   className={styles.textarea}
-                  placeholder="Redacte aquí el comunicado oficial que recibirán los cursos y/o familias..."
+                  placeholder="Redacte aquí el comunicado oficial que recibirán los cursos y/o estudiantes..."
                   value={commContent}
                   onChange={(e) => setCommContent(e.target.value)}
                   required
@@ -196,7 +248,6 @@ export default function DirectivoDashboard() {
               </button>
             </form>
           </div>
-
         </div>
       </div>
     </ProtectedRoute>
