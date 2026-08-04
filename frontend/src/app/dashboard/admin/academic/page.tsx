@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { apiGet, apiPost, apiPut, apiDelete } from '@/services/api';
 import styles from '../abm.module.css';
 
@@ -40,7 +41,21 @@ interface Subject {
 }
 
 export default function AcademicABM() {
-  const [activeTab, setActiveTab] = useState<'COURSES' | 'SUBJECTS'>('COURSES');
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  
+  const [activeTab, setActiveTab] = useState<'COURSES' | 'SUBJECTS'>(
+    tabParam === 'subjects' ? 'SUBJECTS' : 'COURSES'
+  );
+
+  useEffect(() => {
+    if (tabParam === 'subjects') {
+      setActiveTab('SUBJECTS');
+    } else if (tabParam === 'courses') {
+      setActiveTab('COURSES');
+    }
+  }, [tabParam]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +65,11 @@ export default function AcademicABM() {
   const [preceptors, setPreceptors] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);
 
-  // Estados de Modales
+  // Filtro de materia por curso
+  const [subjectCourseFilter, setSubjectCourseFilter] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Modales
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -90,10 +109,10 @@ export default function AcademicABM() {
         apiGet('/admin/users?role=DOCENTE'),
       ]);
       
-      setCourses(coursesData);
-      setSubjects(subjectsData);
-      setPreceptors(preceptorsData);
-      setTeachers(teachersData);
+      setCourses(coursesData || []);
+      setSubjects(subjectsData || []);
+      setPreceptors(preceptorsData || []);
+      setTeachers(teachersData || []);
     } catch (err: any) {
       setError(err.message || 'Error al cargar los datos académicos.');
     } finally {
@@ -250,17 +269,33 @@ export default function AcademicABM() {
     }
   };
 
+  // Filtros de Cursos y Materias
+  const filteredCourses = courses.filter(c => {
+    if (!searchQuery) return true;
+    const searchLower = searchQuery.toLowerCase();
+    return `${c.year} ${c.division} ${c.shift}`.toLowerCase().includes(searchLower);
+  });
+
+  const filteredSubjects = subjects.filter(s => {
+    const matchesCourse = subjectCourseFilter ? s.courseId === subjectCourseFilter : true;
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = !searchQuery || 
+      s.name.toLowerCase().includes(searchLower) ||
+      (s.teacher && `${s.teacher.lastName} ${s.teacher.name}`.toLowerCase().includes(searchLower));
+    return matchesCourse && matchesSearch;
+  });
+
   return (
     <div className={styles.container}>
-      {/* Page Title */}
+      {/* Encabezado Principal */}
       <div className={styles.pageHeader}>
         <div className={styles.titleArea}>
-          <h1>Gestión Escolar</h1>
-          <p>Administra los trayectos académicos mediante la creación de Cursos y Materias curriculares.</p>
+          <h1>Gestión de Cursos y Materias</h1>
+          <p>Configura la estructura curricular de la institución y asigna preceptores y docentes.</p>
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Pestañas de Navegación */}
       <div className={styles.tabHeader}>
         <button
           className={`${styles.tabBtn} ${activeTab === 'COURSES' ? styles.activeTab : ''}`}
@@ -272,16 +307,42 @@ export default function AcademicABM() {
           className={`${styles.tabBtn} ${activeTab === 'SUBJECTS' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('SUBJECTS')}
         >
-          Materias / Asignaturas
+          Materias
         </button>
       </div>
 
-      {/* Control Bar */}
+      {/* Barra de Filtros y Control */}
       <div className={styles.controlsCard}>
         <div className={styles.filtersGroup}>
-          <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-            {activeTab === 'COURSES' ? `${courses.length} Cursos definidos` : `${subjects.length} Materias definidas`}
-          </span>
+          <input
+            className={styles.searchInput}
+            type="text"
+            placeholder={activeTab === 'COURSES' ? "Buscar por año, división..." : "Buscar por materia o docente..."}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+
+          {activeTab === 'SUBJECTS' && (
+            <div className={styles.roleTabs}>
+              <button
+                type="button"
+                className={`${styles.roleChip} ${subjectCourseFilter === '' ? styles.activeChip : ''}`}
+                onClick={() => setSubjectCourseFilter('')}
+              >
+                Todos los Cursos
+              </button>
+              {courses.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={`${styles.roleChip} ${subjectCourseFilter === c.id ? styles.activeChip : ''}`}
+                  onClick={() => setSubjectCourseFilter(c.id)}
+                >
+                  {c.year}° &ldquo;{c.division}&rdquo;
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         
         {activeTab === 'COURSES' ? (
@@ -312,14 +373,13 @@ export default function AcademicABM() {
         </div>
       )}
 
-      {/* Tables depending on active tab */}
+      {/* Tabla según la pestaña activa */}
       <div className={styles.tableContainer}>
         {loading ? (
-          <div className={styles.emptyState}>Cargando datos...</div>
+          <div className={styles.emptyState}>Cargando datos académicos...</div>
         ) : activeTab === 'COURSES' ? (
-          /* Courses Table */
-          courses.length === 0 ? (
-            <div className={styles.emptyState}>No hay cursos creados. Comienza haciendo clic en 'Nuevo Curso'.</div>
+          filteredCourses.length === 0 ? (
+            <div className={styles.emptyState}>No hay cursos registrados.</div>
           ) : (
             <table className={styles.table}>
               <thead>
@@ -327,21 +387,21 @@ export default function AcademicABM() {
                   <th>Año</th>
                   <th>División</th>
                   <th>Turno</th>
-                  <th>Preceptor Asignado</th>
-                  <th>Acciones</th>
+                  <th>Preceptor</th>
+                  <th style={{ textAlign: 'right' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {courses.map((course) => (
+                {filteredCourses.map((course) => (
                   <tr key={course.id}>
                     <td><strong>{course.year}° Año</strong></td>
                     <td>"{course.division}"</td>
                     <td>
                       <span style={{
-                        padding: '3px 8px',
-                        borderRadius: '4px',
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
+                        padding: '3px 10px',
+                        borderRadius: '9999px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
                         backgroundColor: 'var(--bg-tertiary)',
                         color: 'var(--text-secondary)'
                       }}>{course.shift}</span>
@@ -350,11 +410,11 @@ export default function AcademicABM() {
                       {course.preceptor ? `${course.preceptor.lastName}, ${course.preceptor.name}` : <em style={{ color: 'var(--text-muted)' }}>Sin asignar</em>}
                     </td>
                     <td>
-                      <div className={styles.actionBtns}>
-                        <button className={`${styles.iconBtn} ${styles.editBtn}`} onClick={() => handleOpenCourseEdit(course)} title="Editar">
+                      <div className={styles.actionBtns} style={{ justifyContent: 'flex-end' }}>
+                        <button className={`${styles.iconBtn} ${styles.editBtn}`} onClick={() => handleOpenCourseEdit(course)} title="Editar curso">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                         </button>
-                        <button className={`${styles.iconBtn} ${styles.deleteBtn}`} onClick={() => handleOpenDelete(course, 'COURSE')} title="Eliminar">
+                        <button className={`${styles.iconBtn} ${styles.deleteBtn}`} onClick={() => handleOpenDelete(course, 'COURSE')} title="Eliminar curso">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                         </button>
                       </div>
@@ -365,33 +425,46 @@ export default function AcademicABM() {
             </table>
           )
         ) : (
-          /* Subjects Table */
-          subjects.length === 0 ? (
-            <div className={styles.emptyState}>No hay materias creadas. Comienza haciendo clic en 'Nueva Materia'.</div>
+          filteredSubjects.length === 0 ? (
+            <div className={styles.emptyState}>No hay materias registradas.</div>
           ) : (
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Nombre de Materia</th>
+                  <th>Materia</th>
                   <th>Curso</th>
-                  <th>Docente Asignado</th>
-                  <th>Acciones</th>
+                  <th>Docente</th>
+                  <th style={{ textAlign: 'right' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {subjects.map((subj) => (
+                {filteredSubjects.map((subj) => (
                   <tr key={subj.id}>
                     <td><strong>{subj.name}</strong></td>
-                    <td>{subj.course ? `${subj.course.year}° "${subj.course.division}" (${subj.course.shift})` : 'Sin Curso'}</td>
+                    <td>
+                      {subj.course ? (
+                        <span style={{
+                          padding: '3px 10px',
+                          borderRadius: '9999px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          backgroundColor: 'var(--brand-light)',
+                          color: 'var(--brand-primary)',
+                          border: '1px solid rgba(37, 99, 235, 0.2)'
+                        }}>
+                          {subj.course.year}° &ldquo;{subj.course.division}&rdquo; ({subj.course.shift})
+                        </span>
+                      ) : 'Sin Curso'}
+                    </td>
                     <td>
                       {subj.teacher ? `${subj.teacher.lastName}, ${subj.teacher.name}` : <em style={{ color: 'var(--text-muted)' }}>Sin asignar</em>}
                     </td>
                     <td>
-                      <div className={styles.actionBtns}>
-                        <button className={`${styles.iconBtn} ${styles.editBtn}`} onClick={() => handleOpenSubjectEdit(subj)} title="Editar">
+                      <div className={styles.actionBtns} style={{ justifyContent: 'flex-end' }}>
+                        <button className={`${styles.iconBtn} ${styles.editBtn}`} onClick={() => handleOpenSubjectEdit(subj)} title="Editar materia">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                         </button>
-                        <button className={`${styles.iconBtn} ${styles.deleteBtn}`} onClick={() => handleOpenDelete(subj, 'SUBJECT')} title="Eliminar">
+                        <button className={`${styles.iconBtn} ${styles.deleteBtn}`} onClick={() => handleOpenDelete(subj, 'SUBJECT')} title="Eliminar materia">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                         </button>
                       </div>
@@ -404,7 +477,7 @@ export default function AcademicABM() {
         )}
       </div>
 
-      {/* Course Modal */}
+      {/* Modal Curso */}
       {showCourseModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalCard}>
@@ -427,7 +500,7 @@ export default function AcademicABM() {
 
               <div className={styles.formGrid}>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Año (Nivel) *</label>
+                  <label className={styles.formLabel}>Año *</label>
                   <input
                     className={styles.formInput}
                     type="number"
@@ -465,7 +538,7 @@ export default function AcademicABM() {
                   </select>
                 </div>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Preceptor Asignado</label>
+                  <label className={styles.formLabel}>Preceptor</label>
                   <select
                     className={styles.formSelect}
                     value={courseForm.preceptorId}
@@ -494,7 +567,7 @@ export default function AcademicABM() {
         </div>
       )}
 
-      {/* Subject Modal */}
+      {/* Modal Materia */}
       {showSubjectModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalCard}>
@@ -520,8 +593,8 @@ export default function AcademicABM() {
                 <input
                   className={styles.formInput}
                   type="text"
-                  placeholder="Ej: Matemática, Biología"
                   required
+                  placeholder="Ej: Matemática / Historia / Física"
                   value={subjectForm.name}
                   onChange={(e) => setSubjectForm({ ...subjectForm, name: e.target.value })}
                 />
@@ -529,24 +602,22 @@ export default function AcademicABM() {
 
               <div className={styles.formGrid}>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Curso Correspondiente *</label>
+                  <label className={styles.formLabel}>Curso *</label>
                   <select
                     className={styles.formSelect}
                     value={subjectForm.courseId}
                     onChange={(e) => setSubjectForm({ ...subjectForm, courseId: e.target.value })}
-                    required
                   >
-                    <option value="" disabled>Selecciona un Curso</option>
                     {courses.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.year}° "{c.division}" ({c.shift})
+                        {c.year}° &ldquo;{c.division}&rdquo; ({c.shift})
                       </option>
                     ))}
                   </select>
                 </div>
-                
+
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Docente Asignado</label>
+                  <label className={styles.formLabel}>Docente</label>
                   <select
                     className={styles.formSelect}
                     value={subjectForm.teacherId}
@@ -575,30 +646,24 @@ export default function AcademicABM() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Modal Borrar */}
       {showDeleteModal && (
         <div className={styles.modalOverlay}>
-          <div className={`${styles.modalCard} styles.deleteDialog`}>
+          <div className={`${styles.modalCard} ${styles.deleteDialog}`}>
             <div className={styles.deleteBody}>
               <div className={styles.deleteIcon}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </div>
               <h3>¿Eliminar {deleteType === 'COURSE' ? 'Curso' : 'Materia'}?</h3>
               <p>
                 {deleteType === 'COURSE' && selectedCourse && (
-                  <>
-                    ¿Estás seguro de que deseas eliminar el curso <strong>{selectedCourse.year}° "{selectedCourse.division}" ({selectedCourse.shift})</strong>?<br />
-                    Esto podría desvincular a todos los alumnos e inhabilitar las materias asociadas a este curso.
-                  </>
+                  <>¿Confirmas la eliminación del curso <strong>{selectedCourse.year}° "{selectedCourse.division}"</strong> ({selectedCourse.shift})?</>
                 )}
                 {deleteType === 'SUBJECT' && selectedSubject && (
-                  <>
-                    ¿Estás seguro de que deseas eliminar la materia <strong>{selectedSubject.name}</strong>?<br />
-                    Esto borrará permanentemente todas las notas cargadas asociadas a esta asignatura.
-                  </>
+                  <>¿Confirmas la eliminación de la materia <strong>{selectedSubject.name}</strong>?</>
                 )}
               </p>
             </div>

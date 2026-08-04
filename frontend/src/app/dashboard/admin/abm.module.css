@@ -454,3 +454,102 @@
   text-align: center;
   color: var(--text-muted);
 }
+
+/* Role Filter Tabs (Chips) */
+.roleTabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.roleChip {
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+  font-family: var(--font-main);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.roleChip:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.roleChip.activeChip {
+  background-color: var(--brand-primary);
+  color: #ffffff;
+  border-color: var(--brand-primary);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+}
+
+/* Quick Action Buttons */
+.keyBtn:hover {
+  color: var(--accent-amber);
+  border-color: rgba(245, 158, 11, 0.3);
+  background-color: rgba(245, 158, 11, 0.08);
+}
+
+.statusToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  background: none;
+  font-family: var(--font-main);
+}
+
+.statusActive {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--accent-emerald);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.statusActive:hover {
+  background-color: rgba(16, 185, 129, 0.2);
+}
+
+.statusInactive {
+  background-color: rgba(148, 163, 184, 0.1);
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+
+.statusInactive:hover {
+  background-color: rgba(148, 163, 184, 0.2);
+  color: var(--text-primary);
+}
+
+/* Responsive Table Adjustments */
+@media (max-width: 768px) {
+  .controlsCard {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filtersGroup {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .searchInput {
+    width: 100%;
+  }
+
+  .createButton {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
